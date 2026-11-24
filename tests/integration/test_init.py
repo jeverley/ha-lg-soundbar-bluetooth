@@ -858,6 +858,26 @@ async def test_an_input_change_while_connected_is_remembered(
     await hass.config_entries.async_unload(config_entry.entry_id)
 
 
+async def test_moving_before_answering_is_not_a_last_input(
+    hass: HomeAssistant, mock_client: FakeSoundbar, config_entry: MockConfigEntry
+) -> None:
+    # On HDMI eARC, but asked too late: it moves to Bluetooth first and
+    # reports Bluetooth twice.
+    mock_client.switch_to_bt_on_connect = True
+    mock_client.move_before_answering = True
+    await setup(hass, config_entry)
+    assert config_entry.runtime_data.client.moved_before_answering
+    # Its Bluetooth is the connection's, so it is not remembered.
+    assert CONF_LAST_INPUT not in config_entry.data
+    decision = [
+        e
+        for e in config_entry.runtime_data.connection.history
+        if e["event"] == "input decision"
+    ][-1]
+    assert decision["why"] == "it moved to Bluetooth before saying its input"
+    await hass.config_entries.async_unload(config_entry.entry_id)
+
+
 async def test_turn_on_without_a_last_input_stays_on_bluetooth(
     hass: HomeAssistant, mock_client: FakeSoundbar, config_entry: MockConfigEntry
 ) -> None:

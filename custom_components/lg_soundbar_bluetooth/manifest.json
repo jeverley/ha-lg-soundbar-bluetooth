@@ -20,8 +20,8 @@
     "lg_soundbar_bluetooth"
   ],
   "requirements": [
-    "bluetooth-classic==0.6.1",
+    "bluetooth-classic==0.6.2",
     "lg-soundbar-bluetooth==0.4.0"
   ],
-  "version": "0.4.26"
+  "version": "0.4.27"
 }

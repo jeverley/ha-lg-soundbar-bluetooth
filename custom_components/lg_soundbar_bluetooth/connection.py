@@ -299,9 +299,12 @@ class LGSoundbarConnection:
             )
             self.update_stored_details()
             # The input it reported before the connection moved it, unless
-            # the connection woke it (it then starts on Bluetooth).
-            if self.client.initial_function is not None and (
-                self.client.initial_function != Function.BLUETOOTH or seen_on
+            # the connection woke it (it then starts on Bluetooth) or it moved
+            # before answering (its Bluetooth is the connection's, not its own).
+            if (
+                self.client.initial_function is not None
+                and not self.client.moved_before_answering
+                and (self.client.initial_function != Function.BLUETOOTH or seen_on)
             ):
                 self._remember_input(initial, "reported when connecting")
             if restore_input:
@@ -388,6 +391,10 @@ class LGSoundbarConnection:
                 self._record(
                     "input not switched", input=wanted, now=self._current_source()
                 )
+            return
+        if seen_on and self.client.moved_before_answering:
+            # The input it was on is not known: it moved before answering.
+            self._decided("stay", "it moved to Bluetooth before saying its input")
             return
         if seen_on:
             self._decided("stay", "it was on and already on Bluetooth")
