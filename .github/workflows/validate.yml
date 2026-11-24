@@ -10,11 +10,15 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
       - run: pip install pytest-homeassistant-custom-component pytest-asyncio ruff
+      # The integration's own requirements, as pinned in its manifest.
+      - run: >-
+          pip install $(python -c "import json;
+          print(' '.join(json.load(open('custom_components/lg_soundbar_bluetooth/manifest.json'))['requirements']))")
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest
@@ -22,7 +26,7 @@ jobs:
   hassfest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: home-assistant/actions/hassfest@master
 
   hacs:
