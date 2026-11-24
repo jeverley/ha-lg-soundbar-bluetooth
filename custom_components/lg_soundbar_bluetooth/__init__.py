@@ -13,7 +13,6 @@ from lg_soundbar_bluetooth import BluetoothUnsupported, CannotConnect, LGSoundba
 
 from .connection import LGSoundbarConnection
 from .const import CONF_CHANNEL, CONF_FEATURES, CONF_FLAGS, DOMAIN
-from .profile_connector import CONNECTOR
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
@@ -46,8 +45,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: LGSoundbarConfigEntry) -
     client = LGSoundbar(
         entry.data[CONF_ADDRESS],
         entry.data.get(CONF_CHANNEL),
-        # Test build: open the link through BlueZ's profile API.
-        connector=CONNECTOR.connect,
         known_features=entry.data.get(CONF_FLAGS),
     )
     connection = LGSoundbarConnection(hass, entry, client)
