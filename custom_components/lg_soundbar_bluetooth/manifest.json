@@ -17,7 +17,7 @@
   "issue_tracker": "https://github.com/jeverley/ha-lg-soundbar-bluetooth/issues",
   "requirements": [
     "bluetooth-classic==0.4.1",
-    "lg-soundbar-bluetooth==0.2.0"
+    "lg-soundbar-bluetooth==0.2.1"
   ],
   "version": "0.4.19"
 }
