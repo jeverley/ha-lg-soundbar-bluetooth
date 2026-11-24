@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from functools import partial
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 from bluetooth_classic import BluetoothClassicError, ClassicDevice
@@ -60,7 +61,11 @@ def _scan(soundbar: FakeSoundbar, address: str) -> ClassicDevice | None:
 def mock_client(soundbar: FakeSoundbar) -> Generator[FakeSoundbar]:
     """Make the integration talk to the fake soundbar."""
 
-    factory = partial(
+    def make(*args: Any, connector: Any = None, **kwargs: Any) -> LGSoundbar:
+        # The entry's own connector is replaced by the fake soundbar's.
+        return _factory(*args, **kwargs)
+
+    _factory = partial(
         LGSoundbar,
         connector=soundbar.connector,
         send_interval=0,
@@ -73,10 +78,8 @@ def mock_client(soundbar: FakeSoundbar) -> Generator[FakeSoundbar]:
         patch(
             "custom_components.lg_soundbar_bluetooth.config_flow.async_ensure_trusted"
         ),
-        patch("custom_components.lg_soundbar_bluetooth.LGSoundbar", factory),
-        patch(
-            "custom_components.lg_soundbar_bluetooth.config_flow.LGSoundbar", factory
-        ),
+        patch("custom_components.lg_soundbar_bluetooth.LGSoundbar", make),
+        patch("custom_components.lg_soundbar_bluetooth.config_flow.LGSoundbar", make),
         # A scan sees the soundbar while it is on, as a real one.
         patch(
             "custom_components.lg_soundbar_bluetooth.connection.async_find_soundbar",
