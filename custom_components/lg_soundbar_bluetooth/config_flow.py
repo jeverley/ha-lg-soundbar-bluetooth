@@ -288,7 +288,9 @@ class LGSoundbarBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         await async_ensure_trusted(self._address)
         client = LGSoundbar(self._address, self._channel)
         try:
-            await client.connect()
+            # Connecting moves a soundbar that is on to Bluetooth: put it back
+            # on the input it was on, as every other connection does.
+            await client.connect(keep_input=True)
         except BluetoothUnsupported:
             return self.async_abort(reason="bluetooth_unsupported")
         except CannotConnect as err:

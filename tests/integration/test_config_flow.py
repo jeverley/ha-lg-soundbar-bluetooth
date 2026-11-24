@@ -149,6 +149,21 @@ async def test_already_paired_skips_pairing(
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
+async def test_setup_puts_the_input_back(
+    hass: HomeAssistant, mock_client: FakeSoundbar
+) -> None:
+    # On HDMI eARC, the soundbar moves to Bluetooth as setup connects.
+    mock_client.function = 0xC4
+    mock_client.switch_to_bt_on_connect = True
+    result = await start(hass, [g1(paired=True)])
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_ADDRESS: ADDRESS}
+    )
+    result = await choose_options(hass, result)
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert mock_client.function == 0xC4
+
+
 async def test_pairing_failure_can_be_retried(
     hass: HomeAssistant, mock_client: FakeSoundbar
 ) -> None:
