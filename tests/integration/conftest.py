@@ -60,13 +60,9 @@ def _scan(soundbar: FakeSoundbar, address: str) -> ClassicDevice | None:
 def mock_client(soundbar: FakeSoundbar) -> Generator[FakeSoundbar]:
     """Make the integration talk to the fake soundbar."""
 
-    async def no_sdp(address: str) -> int | None:
-        return None
-
     factory = partial(
         LGSoundbar,
         connector=soundbar.connector,
-        channel_finder=no_sdp,
         send_interval=0,
         settle_quiet=0.05,
         settle_max=0.5,
