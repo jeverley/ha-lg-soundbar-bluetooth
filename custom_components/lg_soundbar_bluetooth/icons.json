@@ -1,0 +1,95 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "bluetooth_connection": {
+        "default": "mdi:bluetooth-off",
+        "state": {
+          "on": "mdi:bluetooth-connect"
+        }
+      },
+      "rear_connected": {
+        "default": "mdi:speaker-off",
+        "state": {
+          "on": "mdi:speaker-multiple"
+        }
+      },
+      "woofer_connected": {
+        "default": "mdi:smoke-detector-off",
+        "state": {
+          "on": "mdi:smoke-detector"
+        }
+      }
+    },
+    "media_player": {
+      "soundbar": {
+        "default": "mdi:soundbar"
+      }
+    },
+    "number": {
+      "av_sync": {
+        "default": "mdi:timer-sync-outline"
+      },
+      "bass": {
+        "default": "mdi:music-clef-bass"
+      },
+      "center_level": {
+        "default": "mdi:soundbar"
+      },
+      "dialogue_level": {
+        "default": "mdi:account-voice"
+      },
+      "middle": {
+        "default": "mdi:music-clef-alto"
+      },
+      "overhead_level": {
+        "default": "mdi:speaker"
+      },
+      "rear_level": {
+        "default": "mdi:speaker-multiple"
+      },
+      "side_level": {
+        "default": "mdi:speaker-multiple"
+      },
+      "sleep_timer": {
+        "default": "mdi:power-sleep"
+      },
+      "treble": {
+        "default": "mdi:music-clef-treble"
+      },
+      "woofer_level": {
+        "default": "mdi:smoke-detector"
+      }
+    },
+    "sensor": {
+      "audio_format": {
+        "default": "mdi:music-note"
+      }
+    },
+    "switch": {
+      "auto_display": {
+        "default": "mdi:brightness-auto"
+      },
+      "auto_power": {
+        "default": "mdi:power-settings"
+      },
+      "auto_volume": {
+        "default": "mdi:volume-equal"
+      },
+      "drc": {
+        "default": "mdi:waveform"
+      },
+      "neural_x": {
+        "default": "mdi:surround-sound-5-1-2"
+      },
+      "night_mode": {
+        "default": "mdi:weather-night"
+      },
+      "surround": {
+        "default": "mdi:surround-sound"
+      },
+      "tv_remote": {
+        "default": "mdi:remote-tv"
+      }
+    }
+  }
+}

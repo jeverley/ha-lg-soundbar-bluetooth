@@ -1,0 +1,192 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "bluetooth_unsupported": "This Home Assistant installation cannot open Bluetooth Classic connections."
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_address": "Enter a Bluetooth address such as AA:BB:CC:DD:EE:FF.",
+      "pairing_failed": "Pairing failed. Make sure the soundbar is in Bluetooth pairing mode and close to the Home Assistant host, then try again.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "progress": {
+      "scanning": "Looking for LG soundbars nearby. This takes about 15 seconds.",
+      "pairing": "Pairing with {name}."
+    },
+    "step": {
+      "user": {
+        "title": "Get your soundbar ready",
+        "description": "1. Switch the soundbar on.\n2. Put it in Bluetooth pairing mode: on most LG soundbars, press **Function** until the display shows **BT**.\n3. If your phone is connected to the soundbar, disconnect it.\n\nThen select **Submit** to look for it. This takes about 15 seconds."
+      },
+      "pick": {
+        "title": "Choose your soundbar",
+        "description": "LG soundbars found: {count}.\n\nIf yours is missing, make sure it is in Bluetooth pairing mode and start again, or enter its Bluetooth address.",
+        "data": {
+          "address": "Soundbar"
+        },
+        "data_description": {
+          "address": "The soundbar to set up, or its Bluetooth address."
+        }
+      },
+      "pair": {
+        "title": "Pair with the soundbar",
+        "description": "Keep the soundbar in Bluetooth pairing mode (the display shows **BT**), then select **Submit** to pair with {name}."
+      },
+      "connect": {
+        "title": "Connect to the soundbar",
+        "description": "Could not connect to {name}.\n\nMake sure it is switched on and close to the Home Assistant host, then select **Submit** to try again."
+      },
+      "options": {
+        "title": "Choose options",
+        "description": "How Home Assistant connects to {name}, and which input it switches to when it turns the soundbar on. You can change these later in the integration's options.",
+        "data": {
+          "turn_on_input": "Input when turned on",
+          "auto_connect": "Auto-connect",
+          "scan_interval": "Scan interval"
+        },
+        "data_description": {
+          "turn_on_input": "The input to switch to after Home Assistant turns the soundbar on, which wakes it on Bluetooth. Last input returns it to the input it was last seen on; Default leaves it on Bluetooth.",
+          "auto_connect": "Connect when the soundbar comes on, and at startup if it is on. Connecting briefly switches the soundbar to Bluetooth and disconnects LG's app.",
+          "scan_interval": "How often to check whether the soundbar is on while Home Assistant is not connected to it. Checking does not wake the soundbar."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Soundbar options",
+        "data": {
+          "turn_on_input": "Input when turned on",
+          "auto_connect": "Auto-connect",
+          "scan_interval": "Scan interval"
+        },
+        "data_description": {
+          "turn_on_input": "The input to switch to after Home Assistant turns the soundbar on, which wakes it on Bluetooth. Last input returns it to the input it was last seen on; Default leaves it on Bluetooth.",
+          "auto_connect": "Connect when the soundbar comes on, and at startup if it is on. Connecting briefly switches the soundbar to Bluetooth and disconnects LG's app.",
+          "scan_interval": "How often to check whether the soundbar is on while Home Assistant is not connected to it. Checking does not wake the soundbar."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "bluetooth_connection": {
+        "name": "Bluetooth"
+      },
+      "woofer_connected": {
+        "name": "Subwoofer"
+      },
+      "rear_connected": {
+        "name": "Rear speakers"
+      }
+    },
+    "number": {
+      "av_sync": {
+        "name": "AV sync"
+      },
+      "bass": {
+        "name": "Bass"
+      },
+      "center_level": {
+        "name": "Center level"
+      },
+      "dialogue_level": {
+        "name": "Dialog control"
+      },
+      "middle": {
+        "name": "Middle"
+      },
+      "overhead_level": {
+        "name": "Overhead level"
+      },
+      "rear_level": {
+        "name": "Rear level"
+      },
+      "side_level": {
+        "name": "Side level"
+      },
+      "sleep_timer": {
+        "name": "Sleep timer"
+      },
+      "treble": {
+        "name": "Treble"
+      },
+      "woofer_level": {
+        "name": "Woofer level"
+      }
+    },
+    "sensor": {
+      "audio_format": {
+        "name": "Audio format"
+      }
+    },
+    "switch": {
+      "auto_display": {
+        "name": "Auto display"
+      },
+      "auto_power": {
+        "name": "Auto power"
+      },
+      "auto_volume": {
+        "name": "Auto volume"
+      },
+      "drc": {
+        "name": "Dynamic range control"
+      },
+      "neural_x": {
+        "name": "Neural:X"
+      },
+      "night_mode": {
+        "name": "Night time"
+      },
+      "surround": {
+        "name": "Surround sound"
+      },
+      "tv_remote": {
+        "name": "TV remote control"
+      }
+    }
+  },
+  "exceptions": {
+    "bluetooth_unsupported": {
+      "message": "This Home Assistant installation cannot open Bluetooth Classic connections."
+    },
+    "cannot_connect": {
+      "message": "Could not connect to the soundbar at {address}. Check that it is switched on and paired."
+    },
+    "command_failed": {
+      "message": "The soundbar did not accept the command: {error}"
+    },
+    "volume_unknown": {
+      "message": "The soundbar has not reported its volume yet."
+    },
+    "unknown_source": {
+      "message": "The soundbar has no input called {source}."
+    },
+    "unknown_sound_mode": {
+      "message": "The soundbar has no sound mode called {sound_mode}."
+    },
+    "locked_by_special_mode": {
+      "message": "The soundbar does not allow this change while {mode} is active."
+    },
+    "needs_dts_x": {
+      "message": "Dialog control can only be changed while DTS:X is active."
+    }
+  },
+  "selector": {
+    "turn_on_input": {
+      "options": {
+        "last": "Last input",
+        "default": "Default"
+      }
+    }
+  },
+  "issues": {
+    "emergency_mode": {
+      "title": "{name} is in emergency mode",
+      "description": "{name} reports emergency mode, which a failed firmware update can leave it in. Until it is recovered, it offers no other controls.\n\nOpen LG's Sound Bar app on a phone and connect to the soundbar: the app offers its recovery update. This issue goes away once the soundbar reports normal mode."
+    }
+  }
+}
