@@ -41,7 +41,6 @@ from lg_soundbar_bluetooth import (
 
 from .const import (
     CONF_AUTO_CONNECT,
-    CONF_CHANNEL,
     CONF_FEATURES,
     CONF_FLAGS,
     CONF_LAST_INPUT,
@@ -580,7 +579,6 @@ class LGSoundbarConnection:
         state = self.client.state
         self._update_emergency_issue()
         data = dict(self.entry.data)
-        data[CONF_CHANNEL] = self.client.channel
         data[CONF_FEATURES] = features_from_state(state, data.get(CONF_FEATURES))
         if state.features is not None:
             # Kept apart from the features, so a change does not reload.

@@ -41,7 +41,6 @@ from homeassistant.helpers.selector import (
     TextSelector,
 )
 from lg_soundbar_bluetooth import (
-    BluetoothUnsupported,
     CannotConnect,
     LGSoundbar,
     is_lg_soundbar,
@@ -53,7 +52,6 @@ from lg_soundbar_bluetooth import (
 from .connection import features_from_state
 from .const import (
     CONF_AUTO_CONNECT,
-    CONF_CHANNEL,
     CONF_FEATURES,
     CONF_FLAGS,
     CONF_POWER_OFF,
@@ -145,7 +143,7 @@ class LGSoundbarBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     # 2: the unused last_source and powered_off keys are removed.
-    MINOR_VERSION = 2
+    MINOR_VERSION = 3
 
     @staticmethod
     @callback
@@ -161,7 +159,6 @@ class LGSoundbarBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         self._scan_task: asyncio.Task[list[ClassicDevice]] | None = None
         self._pair_task: asyncio.Task[ClassicDevice] | None = None
         self._pair_error: str | None = None
-        self._channel: int | None = None
         # What the connection found, kept for the options step.
         self._data: dict[str, Any] | None = None
 
@@ -286,17 +283,13 @@ class LGSoundbarBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         """Connect to the soundbar and read what it supports."""
         assert self._address is not None
         await async_ensure_trusted(self._address)
-        client = LGSoundbar(self._address, self._channel)
+        client = LGSoundbar(self._address)
         try:
             # Connecting moves a soundbar that is on to Bluetooth: put it back
             # on the input it was on, as every other connection does.
             await client.connect(keep_input=True)
-        except BluetoothUnsupported:
-            return self.async_abort(reason="bluetooth_unsupported")
         except CannotConnect as err:
             _LOGGER.debug("Could not connect to %s: %s", self._address, err)
-            # Reuse a channel the lookup found, as it does not always answer.
-            self._channel = client.channel
             return self.async_show_form(
                 step_id="connect",
                 errors={"base": "cannot_connect"},
@@ -311,7 +304,6 @@ class LGSoundbarBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         data = {
             CONF_ADDRESS: self._address,
-            CONF_CHANNEL: client.channel,
             CONF_FEATURES: features_from_state(client.state),
         }
         if (flags := client.state.features) is not None:

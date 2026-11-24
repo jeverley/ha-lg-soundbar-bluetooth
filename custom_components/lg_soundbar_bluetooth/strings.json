@@ -1,8 +1,7 @@
 {
   "config": {
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
-      "bluetooth_unsupported": "This Home Assistant installation cannot open Bluetooth Classic connections."
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
@@ -150,9 +149,6 @@
     }
   },
   "exceptions": {
-    "bluetooth_unsupported": {
-      "message": "This Home Assistant installation cannot open Bluetooth Classic connections."
-    },
     "cannot_connect": {
       "message": "Could not connect to the soundbar at {address}. Check that it is switched on and paired."
     },

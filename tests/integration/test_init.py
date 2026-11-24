@@ -266,10 +266,11 @@ async def test_keys_of_earlier_versions_are_removed(
     )
     await setup(hass, entry, connected=False)
     assert entry.state is ConfigEntryState.LOADED
-    assert entry.minor_version == 2
+    assert entry.minor_version == 3
     assert "last_source" not in entry.data
     assert "powered_off" not in entry.data
-    assert entry.data["channel"] == 2
+    # BlueZ finds the channel now.
+    assert "channel" not in entry.data
     await hass.config_entries.async_unload(entry.entry_id)
 
 
@@ -385,9 +386,7 @@ async def test_device_model_falls_back_to_the_bluetooth_name(
 async def test_setup_retries_without_stored_features(
     hass: HomeAssistant, mock_client: FakeSoundbar
 ) -> None:
-    entry = MockConfigEntry(
-        domain=DOMAIN, data={"address": "AA:BB:CC:DD:EE:FF", "channel": 2}
-    )
+    entry = MockConfigEntry(domain=DOMAIN, data={"address": "AA:BB:CC:DD:EE:FF"})
     mock_client.silent = True
     entry.add_to_hass(hass)
     with patch(
@@ -674,7 +673,6 @@ async def test_middle_band_is_hidden_on_q_models(
         unique_id=ADDRESS,
         data={
             "address": ADDRESS,
-            "channel": 2,
             "features": {
                 "levels": [],
                 "switches": [],

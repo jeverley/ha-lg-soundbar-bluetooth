@@ -4,7 +4,6 @@ from __future__ import annotations
 
 DOMAIN = "lg_soundbar_bluetooth"
 
-CONF_CHANNEL = "channel"
 CONF_FEATURES = "features"
 # The extended feature flags the soundbar last reported, as numbers.
 CONF_FLAGS = "flags"

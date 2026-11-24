@@ -7,12 +7,12 @@ from dataclasses import dataclass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS, EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import Event, HomeAssistant
-from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
-from lg_soundbar_bluetooth import BluetoothUnsupported, CannotConnect, LGSoundbar
+from lg_soundbar_bluetooth import CannotConnect, LGSoundbar
 
 from .connection import LGSoundbarConnection
-from .const import CONF_CHANNEL, CONF_FEATURES, CONF_FLAGS, DOMAIN
+from .const import CONF_FEATURES, CONF_FLAGS, DOMAIN
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
@@ -44,7 +44,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: LGSoundbarConfigEntry) -
     """
     client = LGSoundbar(
         entry.data[CONF_ADDRESS],
-        entry.data.get(CONF_CHANNEL),
         known_features=entry.data.get(CONF_FLAGS),
     )
     connection = LGSoundbarConnection(hass, entry, client)
@@ -78,11 +77,6 @@ async def _async_read_features(
     """Connect once to learn what the soundbar offers."""
     try:
         await connection.async_ensure_connected("reading features at set-up")
-    except BluetoothUnsupported as err:
-        await connection.stop()
-        raise ConfigEntryError(
-            translation_domain=DOMAIN, translation_key="bluetooth_unsupported"
-        ) from err
     except CannotConnect as err:
         await connection.stop()
         raise ConfigEntryNotReady(
@@ -92,8 +86,9 @@ async def _async_read_features(
         ) from err
 
 
-# Stored by earlier versions and no longer used.
-OBSOLETE_KEYS = ("last_source", "powered_off")
+# Stored by earlier versions and no longer used. BlueZ now finds the
+# soundbar's RFCOMM channel, so it is no longer stored.
+OBSOLETE_KEYS = ("last_source", "powered_off", "channel")
 
 
 async def async_migrate_entry(
@@ -103,11 +98,11 @@ async def async_migrate_entry(
     if entry.version > 1:
         # Stored by a newer version, which this one cannot read.
         return False
-    if entry.minor_version < 2:
+    if entry.minor_version < 3:
         data = {
             key: value for key, value in entry.data.items() if key not in OBSOLETE_KEYS
         }
-        hass.config_entries.async_update_entry(entry, data=data, minor_version=2)
+        hass.config_entries.async_update_entry(entry, data=data, minor_version=3)
     return True
 
 

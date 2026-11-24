@@ -130,7 +130,6 @@ async def test_scan_pair_and_create_entry(
     assert 3 * 8 + 6 in flags
     assert result["data"] == {
         CONF_ADDRESS: ADDRESS,
-        "channel": 10,
         "features": FEATURES,
         # Stored for use while not connected, and to switch back quickly.
         "sources": ["Bluetooth", "HDMI", "LG TV", "Optical/HDMI ARC", "USB"],

@@ -14,7 +14,6 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.lg_soundbar_bluetooth.const import (
     CONF_AUTO_CONNECT,
-    CONF_CHANNEL,
     CONF_FEATURES,
     DOMAIN,
 )
@@ -93,7 +92,7 @@ def config_entry() -> MockConfigEntry:
         domain=DOMAIN,
         title="LG G1(XX)",
         unique_id=ADDRESS,
-        data={CONF_ADDRESS: ADDRESS, CONF_CHANNEL: 2, CONF_FEATURES: FEATURES},
+        data={CONF_ADDRESS: ADDRESS, CONF_FEATURES: FEATURES},
         # Most tests want a connection; auto-connect gives one at start-up.
         options={CONF_AUTO_CONNECT: True},
     )
