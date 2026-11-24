@@ -71,6 +71,37 @@ class _SerialPortProfile(ServiceInterface):
         _LOGGER.debug("BlueZ asked to disconnect %s", device)
 
 
+class _Releasing(asyncio.Protocol):
+    """Passes events on, and has BlueZ drop its side when the link closes.
+
+    BlueZ keeps its own reference to a connection it handed over, so closing
+    our socket alone leaves the link open.
+    """
+
+    def __init__(self, inner: asyncio.Protocol, release: Callable[[], Any]) -> None:
+        self.inner = inner
+        self._release = release
+
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
+        self.inner.connection_made(transport)
+
+    def data_received(self, data: bytes) -> None:
+        self.inner.data_received(data)  # type: ignore[attr-defined]
+
+    def eof_received(self) -> bool | None:
+        return self.inner.eof_received()  # type: ignore[attr-defined]
+
+    def pause_writing(self) -> None:
+        self.inner.pause_writing()
+
+    def resume_writing(self) -> None:
+        self.inner.resume_writing()
+
+    def connection_lost(self, exc: Exception | None) -> None:
+        self.inner.connection_lost(exc)
+        self._release()
+
+
 class ProfileConnector:
     """Opens the soundbar's Serial Port service through BlueZ."""
 
@@ -128,6 +159,26 @@ class ProfileConnector:
                 return path
         raise CannotConnect(f"BlueZ does not know {address}")
 
+    async def _disconnect_profile(self, bus: MessageBus, path: str, why: str) -> None:
+        """Ask BlueZ to drop its side of the Serial Port connection, if any."""
+        reply = await bus.call(
+            Message(
+                destination="org.bluez",
+                path=path,
+                interface="org.bluez.Device1",
+                member="DisconnectProfile",
+                signature="s",
+                body=[SERIAL_PORT],
+            )
+        )
+        _LOGGER.debug(
+            "Asked BlueZ to disconnect the Serial Port profile (%s): %s",
+            why,
+            "done"
+            if reply is not None and reply.message_type != MessageType.ERROR
+            else _error(reply),
+        )
+
     async def connect(
         self,
         address: str,
@@ -140,6 +191,8 @@ class ProfileConnector:
         """Open the link through BlueZ; the channel hint is not used."""
         bus = await self._ready()
         path = await self._device_path(bus, address)
+        # A link BlueZ still holds from before would block a new one.
+        await self._disconnect_profile(bus, path, "before connecting")
         loop = asyncio.get_running_loop()
         future: asyncio.Future[tuple[int, float]] = loop.create_future()
         self._profile.waiting[path] = (write_on_connect, future)
@@ -174,6 +227,7 @@ class ProfileConnector:
                     reply_task.add_done_callback(_ignore)
         except BaseException:
             self._profile.waiting.pop(path, None)
+            loop.create_task(self._disconnect_profile(bus, path, "connect failed"))
             if future.done() and not future.cancelled():
                 os.close(future.result()[0])
             else:
@@ -186,7 +240,17 @@ class ProfileConnector:
         except OSError:
             used = None
         sock.setblocking(False)
-        transport, protocol = await loop.create_connection(protocol_factory, sock=sock)
+        tasks: set[asyncio.Task[None]] = set()
+
+        def release() -> None:
+            task = loop.create_task(self._disconnect_profile(bus, path, "link closed"))
+            tasks.add(task)
+            task.add_done_callback(tasks.discard)
+
+        transport, releasing = await loop.create_connection(
+            lambda: _Releasing(protocol_factory(), release), sock=sock
+        )
+        protocol = releasing.inner
         # As bluetooth-classic's transport reports it.
         transport._extra["rfcomm_channel"] = used  # type: ignore[attr-defined]
         _LOGGER.debug(
