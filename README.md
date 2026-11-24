@@ -19,13 +19,16 @@ sound mode names follow that integration, so automations read the same.
   where the soundbar offers it (as LG's app shows its power button).
 - **Numbers**: woofer, center, rear, side and overhead speaker levels (dB),
   dialog control and AV sync (ms), using the ranges your soundbar reports.
+- **Connected**: a switch showing whether Home Assistant is connected to
+  the soundbar. Turn it on to connect, or off to let go of the soundbar
+  (handing it back to LG's app) without switching it off. Available while
+  the soundbar is on.
 - **Switches**: night time, dynamic range control (DRC), auto volume, auto
   power, auto display, Neural:X, surround sound and TV remote control.
 - **Bass and treble** (and middle on soundbars with three tone bands).
 - A **sleep timer** (minutes left, 0 for off) on soundbars whose feature
   list offers one, as LG's app does.
-- **Connections**: whether Home Assistant is connected to the soundbar
-  (**Bluetooth**), and the **Subwoofer** and **Rear speakers** where the
+- **Connections**: the **Subwoofer** and **Rear speakers** where the
   soundbar reports them. Some soundbars report only one of these; the
   speaker levels and surround setting work either way.
 - **Audio format**, such as Dolby Atmos, where the soundbar reports it.
@@ -50,13 +53,13 @@ connection. So Home Assistant connects as little as it can:
   change its input. The media player shows on or off, with the volume, input
   and sound mode left blank, and the settings are unavailable.
 - **Using the media player connects**: turning on, or changing the volume,
-  input or sound mode. If the soundbar was on, Home Assistant switches it
+  input or sound mode. So does turning on **Connected**. If the soundbar was on, Home Assistant switches it
   straight back to the input it was on. If it was off, connecting wakes it
   (see **Input when turned on** below).
 - **Once connected**, everything updates live, including changes made with
   the remote, until the connection drops: the soundbar switches off, LG's app
-  takes it, or the link fails. Home Assistant then goes back to scanning; it
-  does not reconnect by itself.
+  takes it, the link fails, or you turn **Connected** off. Home Assistant
+  then goes back to scanning; it does not reconnect by itself.
 
 Options, under **Configure**:
 

@@ -66,7 +66,7 @@ AV_SYNC = "number.lg_g1_xx_av_sync"
 DRC = "switch.lg_g1_xx_dynamic_range_control"
 AUTO_POWER = "switch.lg_g1_xx_auto_power"
 NIGHT = "switch.lg_g1_xx_night_time"
-LINK = "binary_sensor.lg_g1_xx_bluetooth"
+CONNECTED = "switch.lg_g1_xx_connected"
 
 
 async def setup(
@@ -512,7 +512,7 @@ async def test_extras_from_a_g1(
 
     assert hass.states.get("number.lg_g1_xx_bass").state == "0"
     assert hass.states.get("number.lg_g1_xx_treble").attributes["max"] == 5
-    assert hass.states.get("binary_sensor.lg_g1_xx_bluetooth").state == STATE_ON
+    assert hass.states.get(CONNECTED).state == STATE_ON
     assert hass.states.get("binary_sensor.lg_g1_xx_input_connected") is None
     assert hass.states.get("binary_sensor.lg_g1_xx_subwoofer").state == STATE_ON
     # A G1 answers none of these, so they are not created.
@@ -584,18 +584,58 @@ async def test_audio_format_when_the_soundbar_reports_it(
     assert hass.states.get("sensor.lg_g1_xx_audio_format").state == "Dolby Atmos"
 
 
-async def test_bluetooth_connection_shows_a_dropped_link(
+async def test_connected_switch_shows_a_dropped_link(
     hass: HomeAssistant, mock_client: FakeSoundbar, config_entry: MockConfigEntry
 ) -> None:
     await setup(hass, config_entry)
+    assert hass.states.get(CONNECTED).state == STATE_ON
     mock_client.transport.close()
     await asyncio.sleep(0.01)
     await hass.async_block_till_done()
-    link = hass.states.get("binary_sensor.lg_g1_xx_bluetooth")
-    assert link.state == STATE_OFF
+    # Still on, so the switch stays available to connect again.
+    assert hass.states.get(CONNECTED).state == STATE_OFF
     assert hass.states.get("binary_sensor.lg_g1_xx_subwoofer").state == (
         STATE_UNAVAILABLE
     )
+    await hass.config_entries.async_unload(config_entry.entry_id)
+
+
+async def test_connected_switch_disconnects_and_connects(
+    hass: HomeAssistant, mock_client: FakeSoundbar, config_entry: MockConfigEntry
+) -> None:
+    await setup(hass, config_entry)
+    connection = config_entry.runtime_data.connection
+    await hass.services.async_call(
+        "switch", SERVICE_TURN_OFF, {ATTR_ENTITY_ID: CONNECTED}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert not config_entry.runtime_data.client.connected
+    assert hass.states.get(CONNECTED).state == STATE_OFF
+    # The soundbar stays on, and was not told to switch off.
+    assert hass.states.get(MEDIA_PLAYER).state == STATE_ON
+    assert not [f for f in mock_client.sent if (f.major, f.minor) == (0x00, 0x0A)]
+    events = [e["event"] for e in connection.history]
+    asked = events.index("disconnect requested")
+    assert events[asked + 1] == "disconnected"
+    assert connection.history[asked + 1]["disconnected_by_home_assistant"]
+
+    await hass.services.async_call(
+        "switch", SERVICE_TURN_ON, {ATTR_ENTITY_ID: CONNECTED}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(CONNECTED).state == STATE_ON
+    assert mock_client.connections == 2
+    connected = [e for e in connection.history if e["event"] == "connected"]
+    assert connected[-1]["reason"] == "connected switch"
+    await hass.config_entries.async_unload(config_entry.entry_id)
+
+
+async def test_connected_switch_is_unavailable_while_off(
+    hass: HomeAssistant, mock_client: FakeSoundbar, config_entry: MockConfigEntry
+) -> None:
+    await setup_switched_off(hass, mock_client, config_entry)
+    # Connecting would wake it: that is what turning the media player on does.
+    assert hass.states.get(CONNECTED).state == STATE_UNAVAILABLE
     await hass.config_entries.async_unload(config_entry.entry_id)
 
 
@@ -1032,6 +1072,29 @@ async def test_failing_scans_are_logged_once(
     mock_client.off = True
     await connection._scan("test")  # noqa: SLF001
     assert caplog.text.count("Can tell whether soundbar") == 1
+    await hass.config_entries.async_unload(config_entry.entry_id)
+
+
+async def test_the_bluetooth_connection_sensor_of_earlier_versions_is_removed(
+    hass: HomeAssistant,
+    mock_client: FakeSoundbar,
+    config_entry: MockConfigEntry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    config_entry.add_to_hass(hass)
+    entity_registry.async_get_or_create(
+        "binary_sensor",
+        DOMAIN,
+        f"{ADDRESS}_bluetooth_connection",
+        config_entry=config_entry,
+    )
+    await setup(hass, config_entry)
+    assert (
+        entity_registry.async_get_entity_id(
+            "binary_sensor", DOMAIN, f"{ADDRESS}_bluetooth_connection"
+        )
+        is None
+    )
     await hass.config_entries.async_unload(config_entry.entry_id)
 
 

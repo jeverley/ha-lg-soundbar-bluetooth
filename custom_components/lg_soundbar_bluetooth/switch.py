@@ -75,6 +75,7 @@ async def async_setup_entry(
     ]
     if features.get(FEATURE_NIGHT_MODE):
         entities.append(LGSoundbarNightModeSwitch(entry))
+    entities.append(LGSoundbarConnectedSwitch(entry))
     async_remove_unoffered(
         hass,
         entry,
@@ -166,3 +167,42 @@ class LGSoundbarNightModeSwitch(LGSoundbarEntity, SwitchEntity):
         """Turn night mode off."""
         self._refuse_if_locked(self.client.state.night_mode_locked_by)
         await self._command(self.client.set_night_mode(False))
+
+
+class LGSoundbarConnectedSwitch(LGSoundbarEntity, SwitchEntity):
+    """Whether Home Assistant is connected to the soundbar, to connect or let go.
+
+    The soundbar keeps only its newest control connection, so turning this
+    off hands it back to LG's app. Available while the soundbar is on:
+    turning it on never wakes a soundbar that is off, which is what the
+    media player's turn on is for. It turns off by itself when the link
+    drops, as when the soundbar is switched off.
+    """
+
+    _attr_translation_key = "connected"
+
+    def __init__(self, entry: LGSoundbarConfigEntry) -> None:
+        """Initialise the switch."""
+        super().__init__(entry, "connected")
+
+    @property
+    @override
+    def available(self) -> bool:
+        """Return whether the soundbar is on: connected, or seen by a scan."""
+        return self.connection.is_on
+
+    @property
+    @override
+    def is_on(self) -> bool:
+        """Return whether Home Assistant is connected to the soundbar."""
+        return self.client.connected
+
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Connect, putting the input back as connecting always does."""
+        await self._command(self.connection.async_ensure_connected("connected switch"))
+
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Close the connection."""
+        await self._command(self.connection.async_disconnect("connected switch"))

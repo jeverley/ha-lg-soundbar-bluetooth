@@ -72,9 +72,6 @@
   },
   "entity": {
     "binary_sensor": {
-      "bluetooth_connection": {
-        "name": "Bluetooth"
-      },
       "woofer_connected": {
         "name": "Subwoofer"
       },
@@ -131,6 +128,9 @@
       },
       "auto_volume": {
         "name": "Auto volume"
+      },
+      "connected": {
+        "name": "Connected"
       },
       "drc": {
         "name": "Dynamic range control"

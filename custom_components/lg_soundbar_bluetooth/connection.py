@@ -184,6 +184,8 @@ class LGSoundbarConnection:
         # it over.
         self._auto_armed = True
         self._power_off_requested = False
+        # Set while Home Assistant closes the connection on request.
+        self._disconnect_requested = False
         # The input after the connection settled, so later changes the
         # soundbar reports can be told from the ones connecting caused.
         self._settled_input: str | None = None
@@ -329,6 +331,25 @@ class LGSoundbarConnection:
         except Exception:
             self._power_off_requested = False
             raise
+
+    async def async_disconnect(self, reason: str) -> None:
+        """Close the connection, leaving the soundbar on its current input.
+
+        It stays on: scanning carries on, and auto-connect waits until it has
+        been seen off. Reason says what asked, for logs and diagnostics.
+        """
+        async with self._lock:
+            if not self.client.connected:
+                return
+            _LOGGER.debug(
+                "Disconnecting from soundbar %s for %s", self.client.address, reason
+            )
+            self._record("disconnect requested", reason=reason)
+            self._disconnect_requested = True
+            try:
+                await self.client.disconnect()
+            finally:
+                self._disconnect_requested = False
 
     def _option(self, key: str, default: Any) -> Any:
         return self.entry.options.get(key, default)
@@ -632,6 +653,7 @@ class LGSoundbarConnection:
                 ),
                 "input": self._current_source(),
                 "turned_off_by_home_assistant": self._power_off_requested,
+                "disconnected_by_home_assistant": self._disconnect_requested,
             }
             if self._power_off_requested:
                 self._power_off_requested = False
@@ -647,6 +669,8 @@ class LGSoundbarConnection:
                 details["input"],
                 ", turned off by Home Assistant"
                 if details["turned_off_by_home_assistant"]
+                else ", disconnected by Home Assistant"
+                if details["disconnected_by_home_assistant"]
                 else "",
             )
             self._record("disconnected", **details)

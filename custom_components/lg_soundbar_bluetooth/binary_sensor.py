@@ -62,8 +62,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up the connection states the soundbar reports."""
     features = entry.data.get(CONF_FEATURES, {})
-    entities: list[BinarySensorEntity] = [LGSoundbarLink(entry)]
-    entities += [
+    entities: list[BinarySensorEntity] = [
         LGSoundbarBinarySensor(entry, description)
         for description in BINARY_SENSORS
         if features.get(description.feature)
@@ -75,7 +74,9 @@ async def async_setup_entry(
         [d.key for d in BINARY_SENSORS if not features.get(d.feature)]
         # Earlier versions had an input connection sensor. LG's app does not
         # show one, and a G1 cannot report eARC, the usual TV connection.
-        + ["input_connected"],
+        + ["input_connected"]
+        # The Bluetooth connection sensor became the Connected switch.
+        + ["bluetooth_connection"],
     )
     async_add_entities(entities)
 
@@ -99,32 +100,3 @@ class LGSoundbarBinarySensor(LGSoundbarEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Return whether it is connected."""
         return self.entity_description.value_fn(self.client.state)
-
-
-class LGSoundbarLink(LGSoundbarEntity, BinarySensorEntity):
-    """Whether Home Assistant is connected to the soundbar over Bluetooth.
-
-    The link drops whenever the soundbar is switched off, so this shows
-    whether the soundbar is off or out of reach while the others go
-    unavailable.
-    """
-
-    _attr_translation_key = "bluetooth_connection"
-    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    def __init__(self, entry: LGSoundbarConfigEntry) -> None:
-        """Initialise the sensor."""
-        super().__init__(entry, "bluetooth_connection")
-
-    @property
-    @override
-    def available(self) -> bool:
-        """Stay available, as this reports the connection itself."""
-        return True
-
-    @property
-    @override
-    def is_on(self) -> bool:
-        """Return whether the soundbar is connected."""
-        return self.client.connected
