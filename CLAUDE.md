@@ -68,6 +68,9 @@ connection behaviour.
 - It resets the connection (`ECONNRESET`) as it switches off.
 - A short Classic scan finds it whenever it is on, on any input and whatever
   is connected, never while off, and does not wake it.
+- Looking its Serial Port service up (SDP) takes about 1.7 s and does not
+  move it to Bluetooth; the RFCOMM connection after it still gets the
+  input it was on. Its channel is 10.
 - It ignores its eARC code (`00/01 c4`) and takes Optical/HDMI ARC
   (`00/01 df`) on soundbars with the `OPT_HDMI_ARC_SUPPORT` flag.
 
