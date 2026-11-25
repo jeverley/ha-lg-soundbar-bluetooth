@@ -5,8 +5,9 @@ Bluetooth") for LG soundbars controlled over Bluetooth Classic, such as the
 LG G1. It speaks the soundbar's Bluetooth serial protocol, through the
 `lg-soundbar-bluetooth` library. It complements the built-in Wi-Fi `lg_soundbar`
 integration and follows its user-facing conventions (input and sound mode
-names). Distributed through HACS for now; may be proposed for Home Assistant
-core later, which needs the library on PyPI and core PRs opened by the user.
+names). Distributed through Home Assistant's Marketplace (which replaced
+HACS in 2026.11; only the latest Home Assistant is supported); may be
+proposed for Home Assistant core later, which needs the library on PyPI and core PRs opened by the user.
 
 ## Git workflow
 
@@ -18,8 +19,8 @@ core later, which needs the library on PyPI and core PRs opened by the user.
 - Commit straight to `main` only for trivial, self-contained changes.
 - Batch related work rather than pushing `main` for each step: every push to
   `main` runs CI.
-- Bump the version in `manifest.json` only when asked. HACS only offers an
-  update when the version (or a release tag) changes.
+- Bump the version in `manifest.json` only when asked. The Marketplace only
+  offers an update when the version (or a release tag) changes.
 - Commit as `jeverley <46714706+jeverley@users.noreply.github.com>`, never the
   user's personal email. Don't rewrite `main`'s history unless asked.
 - Don't open pull requests unless asked.

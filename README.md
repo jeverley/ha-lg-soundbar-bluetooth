@@ -97,20 +97,21 @@ Options, under **Configure**:
 
 ## Requirements
 
-- Home Assistant OS, Supervised or Container on Linux. Home Assistant's own
-  Python is built with Bluetooth socket support, so nothing extra needs
-  installing.
+- Home Assistant 2026.11 or newer: OS, Supervised or Container on Linux,
+  with BlueZ on the host.
 - A Bluetooth adapter that supports **Bluetooth Classic** (BR/EDR) on the Home
   Assistant host. Most built-in and USB adapters do. ESPHome Bluetooth proxies
   do not work, because they only carry Bluetooth Low Energy.
 
 ## Installation
 
-### HACS
+### Marketplace
 
-1. In HACS, open the menu, choose **Custom repositories**, and add
-   `https://github.com/jeverley/ha-lg-soundbar-bluetooth` as an
-   **Integration**.
+[![Open your Home Assistant instance and show this repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=jeverley&repository=ha-lg-soundbar-bluetooth&category=integration)
+
+1. Select the button above, or in Home Assistant go to **Settings** →
+   **Marketplace** and add `https://github.com/jeverley/ha-lg-soundbar-bluetooth`
+   as an **Integration** repository.
 2. Install **LG Soundbars via Bluetooth** and restart Home Assistant.
 
 ### Manual
