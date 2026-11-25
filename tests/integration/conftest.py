@@ -61,7 +61,7 @@ def mock_client(soundbar: FakeSoundbar) -> Generator[FakeSoundbar]:
 
     factory = partial(
         LGSoundbar,
-        connector=soundbar.connector,
+        link_factory=soundbar.link_factory,
         send_interval=0,
         settle_quiet=0.05,
         settle_max=0.5,
