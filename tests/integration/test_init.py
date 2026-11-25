@@ -210,7 +210,7 @@ async def test_a_dropped_connection_is_not_reconnected(
         hass, config_entry, options={CONF_AUTO_CONNECT: True, CONF_SCAN_INTERVAL: 0.05}
     )
     await setup(hass, config_entry)
-    mock_client.link.close()
+    mock_client.link.drop()
     await asyncio.sleep(0.2)
     await hass.async_block_till_done()
     # Still on, by the scans, but Home Assistant waits to be asked.
@@ -588,7 +588,7 @@ async def test_connected_switch_shows_a_dropped_link(
 ) -> None:
     await setup(hass, config_entry)
     assert hass.states.get(CONNECTED).state == STATE_ON
-    mock_client.link.close()
+    mock_client.link.drop()
     await asyncio.sleep(0.01)
     await hass.async_block_till_done()
     # Still on, so the switch stays available to connect again.
@@ -705,7 +705,7 @@ async def test_a_dropped_connection_is_logged_once(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     await setup(hass, config_entry)
-    mock_client.link.close()
+    mock_client.link.drop()
     await asyncio.sleep(0.01)
     await hass.async_block_till_done()
     assert caplog.text.count("Disconnected from soundbar") == 1
