@@ -21,8 +21,8 @@ sound mode names follow that integration, so automations read the same.
   dialog control and AV sync (ms), using the ranges your soundbar reports.
 - **Connected**: a switch showing whether Home Assistant is connected to
   the soundbar. Turn it on to connect, or off to let go of the soundbar
-  (handing it back to LG's app) without switching it off. Available while
-  the soundbar is on.
+  (handing it back to LG's app) without switching it off. If the soundbar
+  is off, turning it on turns the soundbar on, as the media player does.
 - **Switches**: night time, dynamic range control (DRC), auto volume, auto
   power, auto display, Neural:X, surround sound and TV remote control.
 - **Bass and treble** (and middle on soundbars with three tone bands).

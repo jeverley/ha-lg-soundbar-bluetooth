@@ -629,12 +629,23 @@ async def test_connected_switch_disconnects_and_connects(
     await hass.config_entries.async_unload(config_entry.entry_id)
 
 
-async def test_connected_switch_is_unavailable_while_off(
+async def test_connected_switch_turns_on_a_soundbar_that_is_off(
     hass: HomeAssistant, mock_client: FakeSoundbar, config_entry: MockConfigEntry
 ) -> None:
+    # Seen on HDMI eARC when it connected, then switched off.
     await setup_switched_off(hass, mock_client, config_entry)
-    # Connecting would wake it: that is what turning the media player on does.
-    assert hass.states.get(CONNECTED).state == STATE_UNAVAILABLE
+    assert hass.states.get(CONNECTED).state == STATE_OFF
+    await hass.services.async_call(
+        "switch", SERVICE_TURN_ON, {ATTR_ENTITY_ID: CONNECTED}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(CONNECTED).state == STATE_ON
+    assert hass.states.get(MEDIA_PLAYER).state == STATE_ON
+    # Woken on Bluetooth, then switched to the last input, as turning on does.
+    assert Frame(0x00, 0x01, b"\xdf") in mock_client.sent
+    assert hass.states.get(MEDIA_PLAYER).attributes[ATTR_INPUT_SOURCE] == (
+        "Optical/HDMI ARC"
+    )
     await hass.config_entries.async_unload(config_entry.entry_id)
 
 

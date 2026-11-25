@@ -173,10 +173,10 @@ class LGSoundbarConnectedSwitch(LGSoundbarEntity, SwitchEntity):
     """Whether Home Assistant is connected to the soundbar, to connect or let go.
 
     The soundbar keeps only its newest control connection, so turning this
-    off hands it back to LG's app. Available while the soundbar is on:
-    turning it on never wakes a soundbar that is off, which is what the
-    media player's turn on is for. It turns off by itself when the link
-    drops, as when the soundbar is switched off.
+    off hands it back to LG's app. Connecting wakes a soundbar that is off,
+    so turning this on then turns it on, as the media player's turn on does
+    (with the input chosen for turning on). It turns off by itself when the
+    link drops, as when the soundbar is switched off.
     """
 
     _attr_translation_key = "connected"
@@ -188,8 +188,8 @@ class LGSoundbarConnectedSwitch(LGSoundbarEntity, SwitchEntity):
     @property
     @override
     def available(self) -> bool:
-        """Return whether the soundbar is on: connected, or seen by a scan."""
-        return self.connection.is_on
+        """Stay available: turning it on connects, waking a soundbar that is off."""
+        return True
 
     @property
     @override
@@ -199,8 +199,12 @@ class LGSoundbarConnectedSwitch(LGSoundbarEntity, SwitchEntity):
 
     @override
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Connect, putting the input back as connecting always does."""
-        await self._command(self.connection.async_ensure_connected("connected switch"))
+        """Connect: put the input back, or turn on a soundbar that is off."""
+        await self._command(
+            self.connection.async_ensure_connected(
+                "connected switch", turning_on=not self.connection.is_on
+            )
+        )
 
     @override
     async def async_turn_off(self, **kwargs: Any) -> None:
