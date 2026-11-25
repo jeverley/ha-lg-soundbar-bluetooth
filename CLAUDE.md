@@ -50,8 +50,10 @@ Design decisions rest on these; check the library's `docs/protocol.md`
 before changing
 connection behaviour.
 
-- Any Bluetooth connection wakes it from off (with BT LOCK off), even
-  `l2ping`; it then starts on Bluetooth.
+- Any Bluetooth connection wakes it from off (with BT LOCK off and Auto
+  power on), even `l2ping`; it then starts on Bluetooth. With Auto power
+  off, it does not answer at all while off ("Host is down", or BlueZ's
+  `br-connection-page-timeout`).
 - Connecting moves it to Bluetooth if it is on another input, 0.2 to 0.7 s
   after the connection opens. It only says which input it was on if asked
   before then; asked late (Home Assistant busy), it moves first and reports

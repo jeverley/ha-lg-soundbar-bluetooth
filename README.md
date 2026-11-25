@@ -76,9 +76,12 @@ Options, under **Configure**:
 
 ### Limitations
 
-- **Turning on needs BT LOCK off.** With BT LOCK on (hold Play/Pause on the
-  remote while on BT to see or change it), the soundbar does not answer while
-  off, and may refuse Home Assistant while on inputs other than BT and LG TV.
+- **Turning on needs Auto power on and BT LOCK off.** With **Auto power**
+  off (a switch Home Assistant offers while connected), the soundbar does not
+  answer while off, so Home Assistant cannot wake it. With BT LOCK on (hold
+  Play/Pause on the remote while on BT to see or change it), it does not
+  answer while off either, and may refuse Home Assistant while on inputs
+  other than BT and LG TV.
 - **A short sound drop when Home Assistant connects** while the soundbar is
   playing, as it moves to Bluetooth and back. The soundbar does this for any
   control connection, LG's app included.
