@@ -16,12 +16,13 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/jeverley/ha-lg-soundbar-bluetooth/issues",
   "loggers": [
+    "aio_rfcomm",
     "bluetooth_classic",
     "lg_soundbar_bluetooth"
   ],
   "requirements": [
-    "bluetooth-classic==0.6.2",
-    "lg-soundbar-bluetooth==0.4.0"
+    "bluetooth-classic==0.7.2",
+    "lg-soundbar-bluetooth==0.4.2"
   ],
-  "version": "0.4.27"
+  "version": "0.4.28"
 }

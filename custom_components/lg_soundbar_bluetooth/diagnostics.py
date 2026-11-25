@@ -37,7 +37,6 @@ async def async_get_config_entry_diagnostics(
         "entry_data": async_redact_data(entry.data, TO_REDACT),
         "connected": client.connected,
         "on": entry.runtime_data.connection.is_on,
-        "channel": client.channel,
         # Most recent last: scans, connections and drops, with why.
         "history": list(entry.runtime_data.connection.history),
         "state": state,

@@ -140,9 +140,9 @@ with what they pair with: some soundbars drop the control connection a
 moment after it opens otherwise. Soundbars paired earlier (for example with
 `bluetoothctl`) are marked as trusted when you set them up.
 
-The integration finds the soundbar's serial port channel itself and remembers
-it, along with which settings the soundbar supports, so it can be set up
-again after a restart even while the soundbar is off. With **Auto-connect**
+BlueZ finds the soundbar's serial port itself. The integration remembers which
+settings the soundbar supports, so it can be set up again after a restart even
+while the soundbar is off. With **Auto-connect**
 on, it connects whenever the soundbar comes on.
 
 ### Why there is no automatic discovery notification

@@ -268,6 +268,13 @@ class LGSoundbarConnection:
             try:
                 await self.client.connect(keep_input=restore_input)
             except LGSoundbarError as err:
+                _LOGGER.debug(
+                    "Could not connect to soundbar %s for %s: %s (from %r)",
+                    self.client.address,
+                    reason,
+                    err,
+                    err.__cause__,
+                )
                 self._record(
                     "connect failed",
                     reason=reason,
