@@ -1206,3 +1206,30 @@ async def test_turn_off_without_a_scan_result_connects(
     assert mock_client.connections == 1
     assert mock_client.off
     await hass.config_entries.async_unload(config_entry.entry_id)
+
+
+async def test_connected_switch_turns_on_only_when_seen_off(
+    hass: HomeAssistant, mock_client: FakeSoundbar, config_entry: MockConfigEntry
+) -> None:
+    await setup(hass, config_entry)
+    connection = config_entry.runtime_data.connection
+    calls: list[bool] = []
+
+    async def record(
+        reason: str, *, turning_on: bool = False, **kwargs: object
+    ) -> None:
+        calls.append(turning_on)
+
+    await hass.services.async_call(
+        "switch", SERVICE_TURN_OFF, {ATTR_ENTITY_ID: CONNECTED}, blocking=True
+    )
+    with patch.object(connection, "async_ensure_connected", record):
+        # The last scan's answer is unknown, or older than the soundbar
+        # being switched on: connect without applying the turn-on input.
+        for visible in (None, True, False):
+            connection._visible = visible
+            await hass.services.async_call(
+                "switch", SERVICE_TURN_ON, {ATTR_ENTITY_ID: CONNECTED}, blocking=True
+            )
+    assert calls == [False, False, True]
+    await hass.config_entries.async_unload(config_entry.entry_id)

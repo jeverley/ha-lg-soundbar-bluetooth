@@ -202,7 +202,10 @@ class LGSoundbarConnectedSwitch(LGSoundbarEntity, SwitchEntity):
         """Connect: put the input back, or turn on a soundbar that is off."""
         await self._command(
             self.connection.async_ensure_connected(
-                "connected switch", turning_on=not self.connection.is_on
+                # Only when a scan saw it off: an unknown or older scan may
+                # miss it being switched on on Bluetooth, as by its remote.
+                "connected switch",
+                turning_on=self.connection.seen_off,
             )
         )
 

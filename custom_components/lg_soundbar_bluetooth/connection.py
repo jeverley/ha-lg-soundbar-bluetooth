@@ -203,6 +203,11 @@ class LGSoundbarConnection:
         """Return whether the soundbar is on: connected, or seen by a scan."""
         return self.client.connected or bool(self._visible)
 
+    @property
+    def seen_off(self) -> bool:
+        """Return whether the last scan positively saw the soundbar off."""
+        return not self.client.connected and self._visible is False
+
     def register_callback(self, callback: Callable[[], None]) -> Callable[[], None]:
         """Call callback when the soundbar's state or the connection changes."""
         self._callbacks.append(callback)
