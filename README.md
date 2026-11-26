@@ -214,6 +214,10 @@ The soundbar's protocol is in the
 pairing and the serial link come from
 [bluetooth-classic](https://github.com/jeverley/bluetooth-classic).
 
+How the pieces fit together, the alternatives considered, and proposals for
+Bluetooth Classic support in Home Assistant are in
+[docs/architecture.md](docs/architecture.md).
+
 ## Development
 
 ```sh
