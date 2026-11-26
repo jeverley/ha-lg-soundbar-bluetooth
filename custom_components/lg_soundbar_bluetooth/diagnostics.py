@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+import re
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -15,6 +16,7 @@ from . import LGSoundbarConfigEntry
 # The Bluetooth address identifies the device; diagnostics are often posted
 # publicly when reporting a model.
 TO_REDACT = {CONF_ADDRESS}
+REDACTED = "**REDACTED**"
 
 
 async def async_get_config_entry_diagnostics(
@@ -33,7 +35,7 @@ async def async_get_config_entry_diagnostics(
         if (features := state[key]) is not None:
             names = {flag.value: flag.name for flag in flags}
             state[key] = sorted(names.get(flag, f"flag_{flag}") for flag in features)
-    return {
+    result = {
         "entry_data": async_redact_data(entry.data, TO_REDACT),
         "connected": client.connected,
         "on": entry.runtime_data.connection.is_on,
@@ -41,3 +43,16 @@ async def async_get_config_entry_diagnostics(
         "history": list(entry.runtime_data.connection.history),
         "state": state,
     }
+    # Error messages in the history name the address too.
+    return _redact_address(result, re.compile(re.escape(client.address), re.I))
+
+
+def _redact_address(value: Any, address: re.Pattern[str]) -> Any:
+    """Return value with the address replaced wherever it appears in text."""
+    if isinstance(value, str):
+        return address.sub(REDACTED, value)
+    if isinstance(value, dict):
+        return {key: _redact_address(item, address) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_redact_address(item, address) for item in value]
+    return value

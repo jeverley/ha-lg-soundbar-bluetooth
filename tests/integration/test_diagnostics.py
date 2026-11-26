@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from lg_soundbar_bluetooth.testing import FakeSoundbar
+from lg_soundbar_bluetooth.testing import ADDRESS, FakeSoundbar
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.lg_soundbar_bluetooth.diagnostics import (
@@ -43,3 +43,23 @@ async def test_diagnostics_are_serialisable(
     connected = next(e for e in result["history"] if e["event"] == "connected")
     assert {"connecting", "first input", "ready"} <= set(connected["timings"])
     assert result["entry_data"]["address"] == "**REDACTED**"
+
+
+async def test_diagnostics_leave_out_the_address(
+    hass: HomeAssistant, mock_client: FakeSoundbar, config_entry: MockConfigEntry
+) -> None:
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    # Error messages name the address, in either case.
+    config_entry.runtime_data.connection._record(
+        "connect failed", error=f"Could not connect to {ADDRESS.lower()}: refused"
+    )
+
+    result = await async_get_config_entry_diagnostics(hass, config_entry)
+
+    text = json.dumps(result, cls=JSONEncoder)
+    assert ADDRESS.lower() not in text.lower()
+    assert result["history"][-1]["error"] == (
+        "Could not connect to **REDACTED**: refused"
+    )

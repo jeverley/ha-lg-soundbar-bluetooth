@@ -44,6 +44,7 @@ from lg_soundbar_bluetooth import (
     CannotConnect,
     LGSoundbar,
     is_lg_soundbar,
+    model_from_name,
     normalize_address,
     offered_function_names,
     offered_sound_mode_names,
@@ -54,6 +55,7 @@ from .const import (
     CONF_AUTO_CONNECT,
     CONF_FEATURES,
     CONF_FLAGS,
+    CONF_MODEL,
     CONF_POWER_OFF,
     CONF_SCAN_INTERVAL,
     CONF_SOUND_MODES,
@@ -143,6 +145,7 @@ class LGSoundbarBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     # 2: the unused last_source and powered_off keys are removed.
+    # 3: the stored RFCOMM channel is removed; BlueZ finds it.
     MINOR_VERSION = 3
 
     @staticmethod
@@ -310,6 +313,8 @@ class LGSoundbarBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             data[CONF_FLAGS] = sorted(flags)
         if (power_off := client.state.power_off_supported) is not None:
             data[CONF_POWER_OFF] = power_off
+        if model := client.state.model or model_from_name(self._name):
+            data[CONF_MODEL] = model
         if sources := offered_function_names(client.state.selectable_functions):
             data[CONF_SOURCES] = sources
         if sound_modes := offered_sound_mode_names(client.state.sound_modes):

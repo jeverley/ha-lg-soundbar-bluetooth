@@ -1,0 +1,107 @@
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration registers no actions of its own.
+  appropriate-polling:
+    status: done
+    comment: >
+      Updates are pushed while connected. While not connected, a short
+      Bluetooth Classic scan (every 60 seconds by default, configurable)
+      tells whether the soundbar is on.
+  brands: done
+  common-modules: done
+  config-flow-test-coverage: done
+  config-flow: done
+  dependency-transparency: done
+  docs-actions:
+    status: exempt
+    comment: The integration registers no actions of its own.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup:
+    status: exempt
+    comment: >
+      Connecting wakes a soundbar that is off and moves one that is on to
+      Bluetooth, so setup does not connect. It reads what the soundbar
+      offers from the entry, and a scan tells whether it is on. Only an
+      entry without stored features connects once, raising
+      ConfigEntryNotReady if it cannot.
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: done
+  reauthentication-flow:
+    status: exempt
+    comment: >
+      There are no credentials. The soundbar is paired with the host's
+      Bluetooth during setup.
+  test-coverage: done
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery-update-info:
+    status: exempt
+    comment: >
+      Home Assistant's Bluetooth discovery covers Bluetooth Low Energy only;
+      these soundbars are Bluetooth Classic devices.
+  discovery:
+    status: exempt
+    comment: >
+      Home Assistant's Bluetooth discovery covers Bluetooth Low Energy only.
+      Bluetooth Classic devices are found by an active scan, which runs when
+      the integration is added rather than in the background.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: Each config entry is one soundbar.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default:
+    status: done
+    comment: >
+      Only the settings and connections the soundbar's feature flags offer
+      are created, as in LG's app, so every entity is one the soundbar has.
+  entity-translations: done
+  exception-translations: done
+  icon-translations: done
+  reconfiguration-flow:
+    status: exempt
+    comment: >
+      The only setting is the soundbar's Bluetooth address, which identifies
+      it; another address is another soundbar, added as a new entry.
+  repair-issues: done
+  stale-devices:
+    status: exempt
+    comment: Each config entry is one soundbar, removed with the entry.
+
+  # Platinum
+  async-dependency: done
+  inject-websession:
+    status: exempt
+    comment: The integration makes no HTTP requests.
+  strict-typing:
+    status: todo
+    comment: >
+      The integration is fully annotated, but not yet checked with Home
+      Assistant's strict mypy settings.

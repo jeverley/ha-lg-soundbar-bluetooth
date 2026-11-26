@@ -132,6 +132,8 @@ async def test_scan_pair_and_create_entry(
         CONF_ADDRESS: ADDRESS,
         "features": FEATURES,
         # Stored for use while not connected, and to switch back quickly.
+        # The model the soundbar reported, for the device page and tone bands.
+        "model": "G1",
         "sources": ["Bluetooth", "HDMI", "LG TV", "Optical/HDMI ARC", "USB"],
         "sound_modes": ["AI Sound Pro", "Bass Blast", "Movie", "Music", "Standard"],
     }
@@ -431,3 +433,47 @@ async def test_ensure_trusted_ignores_bluez_errors() -> None:
         return_value=_Unreachable(),
     ):
         await async_ensure_trusted(ADDRESS)
+
+
+async def test_unexpected_connect_error(
+    hass: HomeAssistant, mock_client: FakeSoundbar
+) -> None:
+    result = await start(hass, [g1(paired=True)])
+    with patch(
+        "lg_soundbar_bluetooth.LGSoundbar.connect",
+        AsyncMock(side_effect=RuntimeError("boom")),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_ADDRESS: ADDRESS}
+        )
+    assert result["step_id"] == "connect"
+    assert result["errors"] == {"base": "unknown"}
+
+
+async def test_find_soundbars_when_the_scan_fails() -> None:
+    bluetooth = _Bluetooth([replace(g1(True), uuids=frozenset({SPP_UUID}))])
+
+    async def fail() -> list[ClassicDevice]:
+        raise BluetoothClassicError("busy")
+
+    bluetooth.discover = fail  # type: ignore[method-assign]
+    with _connected(bluetooth):
+        found = await async_find_soundbars()
+    # The soundbars BlueZ already knows are still offered.
+    assert [d.address for d in found] == [ADDRESS]
+
+
+async def test_options_forget_an_input_no_longer_offered(
+    hass: HomeAssistant,
+) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=ADDRESS,
+        data={CONF_ADDRESS: ADDRESS, CONF_SOURCES: ["HDMI"]},
+        options={CONF_TURN_ON_INPUT: "USB"},
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    schema = result["data_schema"].schema
+    defaults = {key.schema: key.default() for key in schema}
+    assert defaults[CONF_TURN_ON_INPUT] == TURN_ON_LAST

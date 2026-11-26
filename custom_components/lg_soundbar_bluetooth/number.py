@@ -19,11 +19,17 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from lg_soundbar_bluetooth import SLEEP_TIMER_CHOICES, Level, UtilityCommand
+from lg_soundbar_bluetooth import (
+    SLEEP_TIMER_CHOICES,
+    Level,
+    UtilityCommand,
+    model_from_name,
+)
 
 from . import LGSoundbarConfigEntry
 from .const import (
     CONF_FEATURES,
+    CONF_MODEL,
     FEATURE_LEVELS,
     FEATURE_SLEEP_TIMER,
     FEATURE_TONE,
@@ -110,7 +116,10 @@ async def async_setup_entry(
         tone_bands = ["bass", "treble"]
         # As in the LG app: only soundbars that report three bands have a
         # middle band, and it is hidden on models with "q" in their name.
-        if features.get(FEATURE_TONE_MIDDLE) and "q" not in entry.title.lower():
+        # The model the soundbar reported, else the one in its Bluetooth
+        # name; not the entry's title, which can be renamed.
+        model = entry.data.get(CONF_MODEL) or model_from_name(entry.title) or ""
+        if features.get(FEATURE_TONE_MIDDLE) and "q" not in model.lower():
             tone_bands.insert(1, "middle")
     entities += [LGSoundbarToneNumber(entry, band) for band in tone_bands]
     unoffered += [b for b in ("bass", "middle", "treble") if b not in tone_bands]

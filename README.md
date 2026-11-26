@@ -64,8 +64,9 @@ connection. So Home Assistant connects as little as it can:
 Options, under **Configure**:
 
 - **Input when turned on**: a soundbar woken by Home Assistant starts on
-  Bluetooth. **Default** leaves it there; choose an input, such as
-  Optical/HDMI ARC, to switch to straight afterwards.
+  Bluetooth. **Last input** (the default) switches it back to the input it
+  was last seen on; **Default** leaves it on Bluetooth; or choose an input,
+  such as Optical/HDMI ARC, to switch to straight afterwards.
 - **Auto-connect** (off by default): connect when the soundbar comes on, and
   when Home Assistant starts if it is on, for live updates without using the
   media player first. Each time, the soundbar moves to Bluetooth for a moment
@@ -154,19 +155,56 @@ which is only found by an active scan, so the scan runs when you add the
 integration rather than in the background. Running Classic scans continuously
 would interfere with Home Assistant's own Bluetooth scanning.
 
-## Troubleshooting
+## Example
 
-Turn on debug logging to see every frame sent and received:
+Turn the soundbar on with the TV, so the TV's sound comes through it:
 
 ```yaml
-logger:
-  logs:
-    custom_components.lg_soundbar_bluetooth: debug
+automation:
+  - alias: Soundbar on with the TV
+    triggers:
+      - trigger: state
+        entity_id: media_player.living_room_tv
+        to: "on"
+    actions:
+      - action: media_player.turn_on
+        target:
+          entity_id: media_player.lg_g1_xx
 ```
+
+With **Input when turned on** set to **Last input** (the default), the
+soundbar returns to the TV's input after waking on Bluetooth.
+
+## Troubleshooting
+
+- **The soundbar does not turn on from Home Assistant**: check **Auto
+  power** is on and BT LOCK is off (see Limitations).
+- **It is not found when adding it**: switch it on, disconnect your phone
+  from it, and keep it close to the Home Assistant host. You can also type
+  its Bluetooth address.
+- **The input changes for a moment when Home Assistant connects**: this is
+  the soundbar moving to Bluetooth, which it does for any control
+  connection; Home Assistant switches it straight back.
+
+To see every frame sent and received, select **Enable debug logging** on the
+integration's page, reproduce the problem, then disable it to download the
+log. This includes the Bluetooth libraries' messages.
 
 When reporting a problem, download the diagnostics from the integration's
 device page and attach them to the issue. They show what your soundbar
-reported, which helps add support for more models.
+reported, which helps add support for more models; the soundbar's Bluetooth
+address is left out.
+
+## Removal
+
+1. Go to **Settings > Devices & services**, select **LG Soundbars via
+   Bluetooth**, and delete the soundbar's entry.
+2. To remove the integration as well, uninstall it from the **Marketplace**
+   (or delete `custom_components/lg_soundbar_bluetooth`) and restart Home
+   Assistant.
+
+The soundbar stays paired with the Home Assistant host. To unpair it, run
+`bluetoothctl remove <address>` on the host.
 
 ## How it works
 
@@ -179,7 +217,8 @@ pairing and the serial link come from
 ## Development
 
 ```sh
-pip install pytest-homeassistant-custom-component lg-soundbar-bluetooth
+pip install pytest-homeassistant-custom-component pytest-asyncio \
+  bluetooth-classic lg-soundbar-bluetooth
 pytest tests
 ```
 

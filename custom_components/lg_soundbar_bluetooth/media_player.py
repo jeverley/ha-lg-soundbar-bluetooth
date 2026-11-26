@@ -45,7 +45,7 @@ class LGSoundbarMediaPlayer(LGSoundbarEntity, MediaPlayerEntity):
     On or off comes from the connection, or while not connected from a scan.
     While not connected, the volume, input and sound mode are not known and
     are left blank; using any control connects first, and turning on
-    connects, which wakes the soundbar. The Bluetooth sensor shows
+    connects, which wakes the soundbar. The Connected switch shows
     whether Home Assistant is connected.
     """
 

@@ -698,6 +698,42 @@ async def test_middle_band_is_hidden_on_q_models(
     assert hass.states.get("number.lg_qp5_middle") is None
 
 
+@pytest.mark.parametrize(
+    ("title", "model", "middle"),
+    [
+        # Renamed: the model the soundbar reported decides, not the name.
+        ("Lounge", "QP5", False),
+        ("Aquarium room", "G1", True),
+    ],
+)
+async def test_middle_band_follows_the_model_not_the_title(
+    hass: HomeAssistant,
+    mock_client: FakeSoundbar,
+    title: str,
+    model: str,
+    middle: bool,
+) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=title,
+        unique_id=ADDRESS,
+        data={
+            "address": ADDRESS,
+            CONF_MODEL: model,
+            "features": {
+                "levels": [],
+                "switches": [],
+                "tone": True,
+                "tone_middle": True,
+            },
+        },
+    )
+    await setup(hass, entry, connected=False)
+    prefix = title.lower().replace(" ", "_")
+    assert hass.states.get(f"number.{prefix}_bass") is not None
+    assert (hass.states.get(f"number.{prefix}_middle") is not None) is middle
+
+
 async def test_a_dropped_connection_is_logged_once(
     hass: HomeAssistant,
     mock_client: FakeSoundbar,
