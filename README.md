@@ -220,6 +220,10 @@ Bluetooth Classic support in Home Assistant are in
 
 ## Development
 
+Developed with AI assistance (Claude Code). Changes are reviewed and tested
+by the maintainer, and behaviour is confirmed on a real LG G1 before
+release.
+
 ```sh
 pip install pytest-homeassistant-custom-component pytest-asyncio \
   bluetooth-classic lg-soundbar-bluetooth
