@@ -9,9 +9,9 @@ It is a companion to Home Assistant's built-in
 integration, which controls Wi-Fi models. Entity layout, input names and
 sound mode names follow that integration, so automations read the same.
 
-> **Status: early.** It is tested day to day on an LG G1. Other models should work if LG's app controls them
-> over Bluetooth, but have not been tried. Please report how it behaves on
-> yours, with diagnostics attached.
+> **Tested on** an LG G1, day to day. Other models should work if LG's app
+> controls them over Bluetooth, but have not been tried. Please report how
+> it behaves on yours, with diagnostics attached.
 
 ## Features
 
