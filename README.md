@@ -13,7 +13,7 @@ sound mode names follow that integration, so automations read the same.
 > over Bluetooth, but have not been tried. Please report how it behaves on
 > yours, with diagnostics attached.
 
-## What you get
+## Features
 
 - **Media player**: volume, mute, input, sound mode, turn on, and turn off
   where the soundbar offers it (as LG's app shows its power button).
