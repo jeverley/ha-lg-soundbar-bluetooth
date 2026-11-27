@@ -24,5 +24,5 @@
     "bluetooth-classic==0.9.1",
     "lg-soundbar-bluetooth==0.6.0"
   ],
-  "version": "1.0.0"
+  "version": "1.0.1"
 }
