@@ -16,112 +16,117 @@ Home Assistant, are in [docs/architecture.md](docs/architecture.md).
 > controls them over Bluetooth, but have not been tried. Please report how
 > it behaves on yours, with diagnostics attached.
 
+## Installation
+
+[![Open your Home Assistant instance and show this repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=jeverley&repository=ha-lg-soundbar-bluetooth&category=integration)
+
+1. Select the button above, or in Home Assistant go to **Settings** →
+   **Marketplace** and search for **LG Soundbars via Bluetooth**.
+2. Install it and restart Home Assistant.
+
+#### Requirements
+
+- Home Assistant 2026.11 or newer, with BlueZ on the host (Container
+  installations need access to the host's D-Bus, as for Home Assistant's
+  own Bluetooth integration).
+- A Bluetooth adapter that supports **Bluetooth Classic** (BR/EDR) on the Home
+  Assistant host. Most built-in and USB adapters do. ESPHome Bluetooth proxies
+  do not work, because they only carry Bluetooth Low Energy.
+
 ## Features
 
-- **Media player**: volume, mute, input, sound mode, turn on, and turn off
-  where the soundbar offers it (as LG's app shows its power button).
-- **Numbers**: woofer, center, rear, side and overhead speaker levels (dB),
-  dialog control and AV sync (ms), using the ranges your soundbar reports.
-- **Connected**: a switch showing whether Home Assistant is connected to
-  the soundbar. Turn it on to connect, or off to let go of the soundbar
-  (handing it back to LG's app) without switching it off. If the soundbar
-  is off, turning it on turns the soundbar on, as the media player does.
-- **Switches**: night time, dynamic range control (DRC), auto volume, auto
-  power, auto display, Neural:X, surround sound and TV remote control.
-- **Bass and treble** (and middle on soundbars with three tone bands).
-- A **sleep timer** (minutes left, 0 for off) on soundbars whose feature
-  list offers one, as LG's app does.
-- **Connections**: the **Subwoofer** and **Rear speakers** where the
-  soundbar reports them. Some soundbars report only one of these; the
-  speaker levels and surround setting work either way.
-- **Audio format**, such as Dolby Atmos, where the soundbar reports it.
-- The soundbar's **model and firmware versions** on its device page, as the
-  soundbar reports them.
+- A **media player** for volume, mute, input, sound mode, and turning the
+  soundbar on and off.
+- The soundbar's **settings** as switches and numbers, using the ranges it
+  reports.
+- Its **speaker connections** and the **audio format** it is playing, where
+  it reports them.
+- A **Connected** switch to connect, or to let go of the soundbar (handing
+  it back to LG's app) without switching it off.
+- The soundbar's **model and firmware versions** on its device page.
 - While the soundbar plays Dolby Atmos or DTS:X, the sound mode shows that
   format and cannot be changed, as on the soundbar itself. Settings the
   soundbar ignores in that mode are refused with an explanation.
 
-Only what your soundbar offers is created, judged by its feature flags as the
-LG app does.
+### Entities
+
+Only what your soundbar offers is created, judged by its feature flags as
+LG's app does. The last column shows what an LG G1 has.
+
+| Entity | Type | Category | Created when | Notes | G1 |
+|---|---|---|---|---|---|
+| *(the soundbar's name)* | Media player | | Always | Turning off where the soundbar offers it, as LG's app shows its power button | ✓ |
+| Connected | Switch | | Always | On while Home Assistant is connected. Turning it on connects (and turns on a soundbar that is off); turning it off hands the soundbar back to LG's app | ✓ |
+| Night time | Switch | | The soundbar has night mode | | ✓ |
+| Dynamic range control | Switch | Configuration | The soundbar offers it | | ✓ |
+| Auto volume | Switch | Configuration | The soundbar offers it | | ✓ |
+| Auto power | Switch | Configuration | The soundbar offers it | Needed for Home Assistant to turn the soundbar on | ✓ |
+| Auto display | Switch | Configuration | The soundbar offers it | | |
+| Neural:X | Switch | Configuration | The soundbar offers it | | |
+| Surround sound | Switch | Configuration | The soundbar offers it | | ✓ |
+| TV remote control | Switch | Configuration | The soundbar offers it | | ✓ |
+| Woofer level | Number (dB) | Configuration | The soundbar offers it | | ✓ |
+| Center level | Number (dB) | Configuration | The soundbar offers it | | ✓ |
+| Rear level | Number (dB) | Configuration | The soundbar offers it | | ✓ |
+| Side level | Number (dB) | Configuration | The soundbar offers it | | |
+| Overhead level | Number (dB) | Configuration | The soundbar offers it | | |
+| Dialog control | Number | Configuration | The soundbar offers it | Only during DTS:X | ✓ |
+| AV sync | Number (ms) | Configuration | The soundbar offers it | | ✓ |
+| Bass, Treble | Number (dB) | Configuration | The soundbar has tone control | | ✓ |
+| Middle | Number (dB) | Configuration | The soundbar reports three tone bands | Hidden on models with "Q" in their name, as in LG's app | |
+| Sleep timer | Number (min) | | The soundbar's feature list offers it | Minutes left; 0 turns it off | |
+| Subwoofer | Binary sensor (connectivity) | Diagnostic | The soundbar reports it | | ✓ |
+| Rear speakers | Binary sensor (connectivity) | Diagnostic | The soundbar reports it | | |
+| Audio format | Sensor | | The soundbar reports it | Such as Dolby Atmos | |
+
+The media player and Connected switch are always available. The others are
+available while Home Assistant is connected, and unavailable otherwise, as
+their values are only known then.
 
 ## How it connects
 
-Connecting to the soundbar has side effects: it wakes the soundbar if it is
-off, switches it to Bluetooth if it is on (cutting your TV sound for a
-moment), and takes it from LG's app, as the soundbar keeps only the newest
-connection. So Home Assistant connects as little as it can:
+Connecting has side effects: it wakes the soundbar if it is off, moves it to
+Bluetooth for a moment if it is on, and takes it from LG's app. So Home
+Assistant connects as little as it can:
 
-- **While not connected**, Home Assistant checks whether the soundbar is on
-  with a short Bluetooth scan every minute. The scan does not wake it or
-  change its input. The media player shows on or off, with the volume, input
-  and sound mode left blank, and the settings are unavailable.
-- **Using the media player connects**: turning on, or changing the volume,
-  input or sound mode. So does turning on **Connected**. If the soundbar was on, Home Assistant switches it
-  straight back to the input it was on. If it was off, connecting wakes it
-  (see **Input when turned on** below).
-- **Once connected**, everything updates live, including changes made with
-  the remote, until the connection drops: the soundbar switches off, LG's app
-  takes it, the link fails, or you turn **Connected** off. Home Assistant
-  then goes back to scanning; it does not reconnect by itself.
+- **While not connected**, a short Bluetooth scan every minute shows whether
+  the soundbar is on, without waking it. The volume, input and sound mode
+  are left blank, and the settings are unavailable.
+- **Using the media player, or turning on Connected, connects.** Home
+  Assistant puts the soundbar straight back on the input it was on, or
+  wakes it if it was off.
+- **Once connected**, everything updates live until the connection drops
+  (the soundbar switches off, LG's app takes it, or you turn Connected off).
+  Home Assistant then goes back to scanning and does not reconnect by
+  itself.
 
 Options, under **Configure**:
 
 - **Input when turned on**: a soundbar woken by Home Assistant starts on
   Bluetooth. **Last input** (the default) switches it back to the input it
   was last seen on; **Default** leaves it on Bluetooth; or choose an input,
-  such as Optical/HDMI ARC, to switch to straight afterwards.
+  such as Optical/HDMI ARC.
 - **Auto-connect** (off by default): connect when the soundbar comes on, and
-  when Home Assistant starts if it is on, for live updates without using the
-  media player first. Each time, the soundbar moves to Bluetooth for a moment
-  before Home Assistant switches it back. It never reconnects after the
-  connection drops while the soundbar stays on, so it does not fight LG's app.
+  at start-up if it is on, for live updates without using the media player
+  first. It never reconnects after a drop while the soundbar stays on, so it
+  does not fight LG's app.
 - **Scan interval** (60 seconds): how often to check whether the soundbar is
   on while not connected.
 
 ### Limitations
 
-- **Turning on needs Auto power on and BT LOCK off.** With **Auto power**
-  off (a switch Home Assistant offers while connected), the soundbar does not
-  answer while off, so Home Assistant cannot wake it. With BT LOCK on (hold
-  Play/Pause on the remote while on BT to see or change it), it does not
-  answer while off either, and may refuse Home Assistant while on inputs
-  other than BT and LG TV.
+- **Turning on needs Auto power on and BT LOCK off.** Otherwise the soundbar
+  does not answer while off, and with BT LOCK on it may also refuse Home
+  Assistant on inputs other than BT and LG TV. (Hold Play/Pause on the
+  remote while on BT to see or change BT LOCK.)
 - **A short sound drop when Home Assistant connects** while the soundbar is
-  playing, as it moves to Bluetooth and back. The soundbar does this for any
-  control connection, LG's app included.
+  playing, as it moves to Bluetooth and back. LG's app causes the same.
 - **No live updates while not connected.** Changes made with the remote, the
-  TV or LG's app show up once Home Assistant next connects; on or off is
-  always shown, from the scans.
-- **One controller at a time.** Connecting takes the soundbar from LG's app,
-  and the other way round. Opening the app is enough to take it from Home
-  Assistant, which then leaves the soundbar alone until you use it again.
+  TV or LG's app show up once Home Assistant next connects.
+- **One controller at a time.** Opening LG's app takes the soundbar from
+  Home Assistant, and the other way round.
 - **Scanning shares the Bluetooth adapter** with Home Assistant's other
-  Bluetooth use. A 5-second scan a minute is little, but a shorter scan
-  interval takes more.
-
-## Requirements
-
-- Home Assistant 2026.11 or newer: OS, Supervised or Container on Linux,
-  with BlueZ on the host.
-- A Bluetooth adapter that supports **Bluetooth Classic** (BR/EDR) on the Home
-  Assistant host. Most built-in and USB adapters do. ESPHome Bluetooth proxies
-  do not work, because they only carry Bluetooth Low Energy.
-
-## Installation
-
-### Marketplace
-
-[![Open your Home Assistant instance and show this repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=jeverley&repository=ha-lg-soundbar-bluetooth&category=integration)
-
-1. Select the button above, or in Home Assistant go to **Settings** →
-   **Marketplace** and add `https://github.com/jeverley/ha-lg-soundbar-bluetooth`
-   as an **Integration** repository.
-2. Install **LG Soundbars via Bluetooth** and restart Home Assistant.
-
-### Manual
-
-Copy `custom_components/lg_soundbar_bluetooth` into your Home Assistant
-`config/custom_components` folder and restart Home Assistant.
+  Bluetooth use; a shorter scan interval takes more of it.
 
 ## Setup
 
@@ -136,47 +141,63 @@ Copy `custom_components/lg_soundbar_bluetooth` into your Home Assistant
    **BT**). Select **Submit** and Home Assistant pairs with it.
 
 Like LG's app, the integration recognises a soundbar by a Bluetooth name
-starting with "LG " or "LG-" (an LG G1 shows up as "LG G1(XX)", where XX
-varies).
+starting with "LG " or "LG-" (an LG G1 shows up as "LG G1(XX)"). Setup pairs
+with the soundbar and marks it as trusted on the Home Assistant host; one
+paired earlier, for example with `bluetoothctl`, is trusted when you add it.
 
-Pairing uses a temporary agent that only accepts the chosen soundbar. The
-soundbar is then marked as trusted on the Home Assistant host, as phones do
-with what they pair with: some soundbars drop the control connection a
-moment after it opens otherwise. Soundbars paired earlier (for example with
-`bluetoothctl`) are marked as trusted when you set them up.
+There is no automatic discovery notification: Home Assistant's Bluetooth
+discovery only sees Bluetooth Low Energy, and these soundbars use Bluetooth
+Classic, so the scan runs when you add the integration.
 
-BlueZ finds the soundbar's serial port itself. The integration remembers which
-settings the soundbar supports, so it can be set up again after a restart even
-while the soundbar is off. With **Auto-connect**
-on, it connects whenever the soundbar comes on.
+## Examples
 
-### Why there is no automatic discovery notification
+Paste these into a new automation, with **Edit in YAML**.
 
-Home Assistant's automatic Bluetooth discovery only listens to Bluetooth Low
-Energy advertisements. Soundbars controlled this way use Bluetooth Classic,
-which is only found by an active scan, so the scan runs when you add the
-integration rather than in the background. Running Classic scans continuously
-would interfere with Home Assistant's own Bluetooth scanning.
-
-## Example
-
-Turn the soundbar on with the TV, so the TV's sound comes through it:
+Connect when the TV turns on. If the TV switches the soundbar on and off
+itself (over HDMI ARC or eARC), this connects before the TV's sound starts,
+so the soundbar's moment on Bluetooth goes unnoticed. If the soundbar is
+off, connecting turns it on, on the input chosen in **Input when turned
+on**.
 
 ```yaml
-automation:
-  - alias: Soundbar on with the TV
-    triggers:
-      - trigger: state
-        entity_id: media_player.living_room_tv
-        to: "on"
-    actions:
-      - action: media_player.turn_on
-        target:
-          entity_id: media_player.lg_g1_xx
+alias: Connect to the soundbar when the TV turns on
+triggers:
+  - trigger: state
+    entity_id: media_player.living_room_tv
+    to: "on"
+actions:
+  - action: switch.turn_on
+    target:
+      entity_id: switch.lg_g1_xx_connected
 ```
 
-With **Input when turned on** set to **Last input** (the default), the
-soundbar returns to the TV's input after waking on Bluetooth.
+Use the Music sound mode while the TV plays Spotify, and AI Sound Pro
+otherwise, only while the TV is on so it never wakes the soundbar. The
+TV's media player reports the app it is running as its source; check
+yours under **Tools > States**.
+
+```yaml
+alias: Soundbar sound mode follows the TV's app
+triggers:
+  - trigger: state
+    entity_id: media_player.living_room_tv
+    attribute: source
+conditions:
+  - condition: state
+    entity_id: media_player.living_room_tv
+    state: "on"
+actions:
+  - action: media_player.select_sound_mode
+    target:
+      entity_id: media_player.lg_g1_xx
+    data:
+      sound_mode: |
+        {% if state_attr('media_player.living_room_tv', 'source') == 'Spotify - Music and Podcasts' %}
+          Music
+        {% else %}
+          AI Sound Pro
+        {% endif %}
+```
 
 ## Troubleshooting
 
@@ -203,8 +224,7 @@ address is left out.
 1. Go to **Settings > Devices & services**, select **LG Soundbars via
    Bluetooth**, and delete the soundbar's entry.
 2. To remove the integration as well, uninstall it from the **Marketplace**
-   (or delete `custom_components/lg_soundbar_bluetooth`) and restart Home
-   Assistant.
+   and restart Home Assistant.
 
 The soundbar stays paired with the Home Assistant host. To unpair it, run
 `bluetoothctl remove <address>` on the host.
@@ -217,7 +237,7 @@ The soundbar's protocol is in the
 pairing and the serial link come from
 [bluetooth-classic](https://github.com/jeverley/bluetooth-classic).
 
-How the pieces fit together, the alternatives considered, and proposals for
+How the pieces fit together, the routes prototyped, and proposals for
 Bluetooth Classic support in Home Assistant are in
 [docs/architecture.md](docs/architecture.md).
 
