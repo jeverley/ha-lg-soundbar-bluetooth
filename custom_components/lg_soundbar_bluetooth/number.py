@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import override
+from typing import cast, override
 
 from homeassistant.components.number import (
     NumberDeviceClass,
@@ -204,7 +204,7 @@ class LGSoundbarToneNumber(LGSoundbarEntity, NumberEntity):
 
     @property
     def _tone(self) -> Level | None:
-        return getattr(self.client.state, self._band)
+        return cast(Level | None, getattr(self.client.state, self._band))
 
     @property
     @override

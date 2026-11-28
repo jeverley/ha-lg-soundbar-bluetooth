@@ -305,7 +305,7 @@ class LGSoundbarBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors={"base": "unknown"},
                 description_placeholders={"name": self._display_name},
             )
-        data = {
+        data: dict[str, Any] = {
             CONF_ADDRESS: self._address,
             CONF_FEATURES: features_from_state(client.state),
         }
@@ -390,7 +390,6 @@ def options_schema(sources: list[str], current: Mapping[str, Any]) -> vol.Schema
 class LGSoundbarBluetoothOptionsFlow(OptionsFlow):
     """Choose how Home Assistant connects and which input to wake on."""
 
-    @override
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:

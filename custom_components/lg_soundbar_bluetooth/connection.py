@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 import contextlib
 import logging
 import time
@@ -33,6 +33,7 @@ from lg_soundbar_bluetooth import (
     LGSoundbar,
     LGSoundbarError,
     SoundbarState,
+    UtilityCommand,
     current_function_name,
     function_for_name,
     offered_function_names,
@@ -131,7 +132,9 @@ def _answered(stored: dict[str, Any], key: str, value: object) -> bool:
     return bool(stored.get(key)) or value is not None
 
 
-def _flagged(commands: frozenset, features: frozenset[int]) -> list[int]:
+def _flagged(
+    commands: Collection[UtilityCommand], features: frozenset[int]
+) -> list[int]:
     return sorted(int(c) for c in commands if SETTING_FEATURES[c] in features)
 
 

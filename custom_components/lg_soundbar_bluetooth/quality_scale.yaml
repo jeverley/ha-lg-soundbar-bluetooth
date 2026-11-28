@@ -28,10 +28,11 @@ rules:
   test-before-setup:
     status: exempt
     comment: >
-      Connecting wakes a soundbar that is off and moves one that is on to
-      Bluetooth, so setup does not connect. It reads what the soundbar
-      offers from the entry, and a scan tells whether it is on. Only an
-      entry without stored features connects once, raising
+      The config flow connects before creating the entry. Loading the
+      entry at each start-up does not connect, as connecting wakes a
+      soundbar that is off and moves one that is on to Bluetooth. It reads
+      what the soundbar offers from the entry, and a scan tells whether it
+      is on. Only an entry without stored features connects once, raising
       ConfigEntryNotReady if it cannot.
   unique-config-entry: done
 
@@ -100,8 +101,4 @@ rules:
   inject-websession:
     status: exempt
     comment: The integration makes no HTTP requests.
-  strict-typing:
-    status: todo
-    comment: >
-      The integration is fully annotated, but not yet checked with Home
-      Assistant's strict mypy settings.
+  strict-typing: done

@@ -7,6 +7,8 @@ from typing import override
 from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
+)
+from homeassistant.components.media_player.const import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
 )

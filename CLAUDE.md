@@ -113,7 +113,8 @@ app's order, waits and feature-flag gating.
   scripts.
 - Change one thing at a time, so a result points to one cause. Keep test
   builds minimal; no fallbacks or options a test doesn't need.
-- Before committing: `ruff check .`, `ruff format --check .`, and
+- Before committing: `ruff check .`, `ruff format --check .`,
+  `mypy -p custom_components.lg_soundbar_bluetooth` (strict), and
   `pytest tests` (needs `pytest-homeassistant-custom-component`). Timing
   tests can be flaky: run the suite a few times after connection changes.
 - When reporting results, keep "tests pass" distinct from "confirmed on the

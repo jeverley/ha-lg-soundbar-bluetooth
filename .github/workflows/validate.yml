@@ -14,13 +14,14 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-      - run: pip install pytest-homeassistant-custom-component pytest-asyncio ruff
+      - run: pip install pytest-homeassistant-custom-component pytest-asyncio ruff mypy
       # The integration's own requirements, as pinned in its manifest.
       - run: >-
           pip install $(python -c "import json;
           print(' '.join(json.load(open('custom_components/lg_soundbar_bluetooth/manifest.json'))['requirements']))")
       - run: ruff check .
       - run: ruff format --check .
+      - run: mypy -p custom_components.lg_soundbar_bluetooth
       - run: pytest
 
   hassfest:

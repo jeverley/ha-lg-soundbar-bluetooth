@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 import re
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_ADDRESS
@@ -44,7 +44,8 @@ async def async_get_config_entry_diagnostics(
         "state": state,
     }
     # Error messages in the history name the address too.
-    return _redact_address(result, re.compile(re.escape(client.address), re.I))
+    address = re.compile(re.escape(client.address), re.I)
+    return cast(dict[str, Any], _redact_address(result, address))
 
 
 def _redact_address(value: Any, address: re.Pattern[str]) -> Any:
