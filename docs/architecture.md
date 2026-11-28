@@ -1,11 +1,10 @@
 # Architecture
 
-Home Assistant's Bluetooth support covers Bluetooth Low Energy. Some
-devices are controlled over Bluetooth Classic instead: LG soundbars such as
-the G1 speak a serial protocol over RFCOMM, the Serial Port Profile. This
-integration shows one way to support such devices today, and is meant as a
-reference for adding Classic support to Home Assistant's `bluetooth`
-integration later. Each proposal below stands on its own.
+Home Assistant's Bluetooth support covers Bluetooth Low Energy. Some devices
+use Bluetooth Classic instead. LG soundbars such as the G1 speak a serial
+protocol over RFCOMM, the Serial Port Profile. This integration shows one
+way to support them today, and could serve as a reference for adding
+Classic support to Home Assistant's `bluetooth` integration later.
 
 ## Layers
 
@@ -29,204 +28,316 @@ flowchart TD
 | Package | Owns | Knows about LG? |
 |---|---|---|
 | Integration (this repository) | Entities, when to scan and when to connect, the config flow, the event history in diagnostics | Yes |
-| [lg-soundbar-bluetooth](https://github.com/jeverley/lg-soundbar-bluetooth) | Frames, state, the start-up sequence, putting the input back after connecting; a fake soundbar for tests | Yes |
-| [bluetooth-classic](https://github.com/jeverley/bluetooth-classic) | Classic discovery, finding one device, pairing and trust (BlueZ over dbus-fast); the one aio-rfcomm owner in the process; `RfcommConnection` and `establish_rfcomm_connection()` | No |
-| aio-rfcomm, dbus-fast | RFCOMM channels by service UUID; D-Bus | No |
+| [`lg-soundbar-bluetooth`](https://github.com/jeverley/lg-soundbar-bluetooth) | Frames, state, the start-up sequence, putting the input back after connecting, and a fake soundbar for tests | Yes |
+| [`bluetooth-classic`](https://github.com/jeverley/bluetooth-classic) | Classic discovery, finding one device, pairing and trust (BlueZ over `dbus-fast`), the one `aio-rfcomm` owner in the process, `RfcommConnection` and `establish_rfcomm_connection()` | No |
+| [`aio-rfcomm`](https://github.com/dlech/aio-rfcomm) | RFCOMM channels by service UUID, through BlueZ's profile API | No |
+| [`dbus-fast`](https://github.com/Bluetooth-Devices/dbus-fast) | D-Bus, for talking to BlueZ | No |
 
-The integration calls both libraries directly, as Home Assistant
-integrations do, with no wrapper module. The one seam is the soundbar
-client's link factory: it is handed something shaped like
-`RfcommConnection`, so a connection from Home Assistant's `bluetooth`
-integration, or the test fake, can replace it without touching the protocol
-code.
+The soundbar client connects through an `RfcommConnection`, made by its
+link factory.
 
-`bluetooth-classic` stands in for what Home Assistant's `bluetooth`
-integration would do for Classic devices, and follows bleak's names where
-there is an equivalent (`discover()`, `find_device_by_address()`, `pair()`,
-`unpair()`, and `establish_rfcomm_connection()` shaped like
-bleak-retry-connector's `establish_connection()`).
+`bluetooth-classic` does for Classic devices what Home Assistant's
+`bluetooth` integration might do later. It uses [`bleak`](https://github.com/hbldh/bleak)'s names where there
+is an equivalent, such as `discover()`, `find_device_by_address()`,
+`pair()` and `unpair()`, and `establish_rfcomm_connection()` is modelled on
+[`bleak-retry-connector`](https://github.com/Bluetooth-Devices/bleak-retry-connector)'s `establish_connection()`.
 
 ## How it behaves, and why
 
-Connecting to the soundbar has side effects: it wakes a soundbar that is
-off, moves one that is on to Bluetooth, and takes it from LG's app (the
-soundbar keeps only the newest control connection). So the integration
-connects as little as it can:
+Connecting to the soundbar wakes it if it is off, moves it to Bluetooth if
+it is on, and disconnects other connected devices. So the integration
+connects as little as it can.
 
-- **On or off comes from a scan.** While not connected, a Classic inquiry
-  for the soundbar's address runs every 60 seconds by default. It stops as
-  soon as the soundbar answers (within 5 seconds), uses a Classic-only
-  discovery filter, and does not wake or move the soundbar.
-- **Connections are made on demand:** when the media player or the
-  Connected switch is used, or, with the auto-connect option, when the
-  soundbar comes on. Home Assistant never reconnects by itself after a
-  drop, so it does not fight LG's app.
-- **The first request goes out as the link opens.**
-  - The soundbar moves to Bluetooth 0.12 to 0.7 seconds after a connection
-    opens, and only says which input it was on if asked before then.
-  - The request is sent from the aio-rfcomm owner's own thread the moment
-    BlueZ hands the connection over (`write_on_open`), however busy Home
-    Assistant's event loop is. On a real soundbar it goes out about 0.1 ms
-    after the link opens.
-  - It is the same idea as TCP Fast Open: the first request is handed over
-    with the open, rather than written once the caller has seen the
-    connection.
-  - Unlike TCP Fast Open, the bytes are not carried in the handshake itself
-    (RFCOMM's cannot carry data), and the aim is a deadline rather than a
-    saved round trip.
-- **The input is put back** after connecting, and the last input is stored
-  so that turning the soundbar on returns to it.
-- **Setup pairs and trusts.**
-  - Pairing uses a temporary agent that accepts only the chosen soundbar.
-  - The soundbar is then marked as trusted on the host, as phones do with
-    what they pair with: an LG G1 paired but not trusted accepts the
-    connection, then resets it about 75 ms later.
-  - What the soundbar offers is stored, so entities are created while it
-    is off.
-- **One aio-rfcomm owner per process.** aio-rfcomm allows one Bluetooth
-  object per process, so `bluetooth-classic` owns it on a thread of its own
-  and every caller shares it.
+- While not connected, a Classic inquiry for the soundbar's address every
+  60 seconds shows whether it is on. It stops as soon as the soundbar
+  answers (within 5 seconds) and does not wake or move it.
+- It connects when the media player or the Connected switch is used, or,
+  with auto-connect, when the soundbar comes on.
+- It never reconnects by itself after a drop.
+- After connecting, it puts the input back, and stores the last input for
+  turning the soundbar on.
+
+The first request goes out as the link opens:
+
+- The soundbar moves to Bluetooth 0.12 to 0.7 seconds after a connection
+  opens, and only reports the input it was on if asked before then.
+- The request is sent from the `aio-rfcomm` owner's own thread as soon as
+  BlueZ hands the connection over (`write_on_open`), about 0.1 ms after the
+  link opens, however busy Home Assistant is.
+- It achieves much the same as TCP Fast Open, where the first request is
+  passed in with the connect. RFCOMM's handshake cannot carry data, though,
+  so the bytes follow it.
+
+```mermaid
+sequenceDiagram
+    participant HA as Home Assistant
+    participant O as Owner thread
+    participant B as BlueZ
+    participant S as Soundbar
+    rect rgba(40, 160, 70, 0.18)
+        Note over HA,S: In time, with the owner on its own loop
+        HA->>O: connect
+        O->>B: open RFCOMM channel
+        B-->>O: channel open (t = 0)
+        O->>S: which input? (about 0.1 ms)
+        S-->>O: Optical/HDMI ARC
+        S->>S: moves to Bluetooth (0.12 to 0.7 s)
+        O-->>HA: input known, switch back
+    end
+    rect rgba(200, 50, 50, 0.18)
+        Note over HA,S: Late, with the request sent from a busy main loop
+        HA->>B: open RFCOMM channel
+        B-->>HA: channel open (t = 0)
+        S->>S: moves to Bluetooth (0.12 to 0.7 s)
+        HA->>S: which input? (late)
+        S-->>HA: Bluetooth, original input lost
+    end
+```
+
+Setup pairs with the soundbar, using a temporary agent that accepts only
+that soundbar, and marks it as trusted. An untrusted G1 resets the
+connection about 75 ms after it opens. What the soundbar offers is stored,
+so its entities can be created while it is off.
+
+`aio-rfcomm` allows one Bluetooth object per process, so `bluetooth-classic`
+owns it on a thread of its own and every caller shares it.
 
 The protocol and what real soundbars do are documented in the library's
 [docs/protocol.md](https://github.com/jeverley/lg-soundbar-bluetooth/blob/main/docs/protocol.md).
 
-## Routes prototyped
+## What was prototyped
 
-The link has been built four ways, each confirmed on a real soundbar. The
-first three all opened through a serialx `rfcomm://` handler; what changed
-underneath was what made the connection. Each change moved work to a
-better-placed layer, and the timing of the first request shaped all of
-them.
+Two things were prototyped separately: what makes the RFCOMM connection,
+and how the soundbar library reaches it. Each combination below was tested
+on a real soundbar.
+
+| Connection mechanism | Through a [`serialx`](https://pypi.org/project/serialx/) `rfcomm://` handler | Through `bluetooth-classic`'s `RfcommConnection` |
+|---|---|---|
+| Raw RFCOMM socket | Tested | |
+| Custom BlueZ profile code | Tested | |
+| `aio-rfcomm` | Tested | Today |
+
+### The connection mechanism
 
 ```mermaid
-flowchart LR
-    subgraph S1["1. Own socket"]
+flowchart TB
+    L["device library"]
+    subgraph M1["<b>Raw RFCOMM socket</b>"]
         direction TB
-        a1["lg-soundbar-bluetooth"] --> a2["serialx rfcomm:// handler"] --> a3["Own RFCOMM socket, first request<br/>from a worker thread; channel by SDP"] --> a4["Linux kernel"]
+        m1a["worker thread opens a socket<br/>channel looked up by SDP"] --> m1b["Linux kernel RFCOMM"]
     end
-    subgraph S2["2. Own BlueZ profile"]
+    subgraph M2["<b>Custom BlueZ profile code</b>"]
         direction TB
-        b1["lg-soundbar-bluetooth"] --> b2["serialx rfcomm:// handler"] --> b3["Our profile code on D-Bus,<br/>first request in BlueZ's handover"] --> b4["BlueZ connects by service"]
+        m2a["profile code on D-Bus,<br/>first request in BlueZ's handover"] --> m2b["BlueZ connects by service"]
     end
-    subgraph S3["3. aio-rfcomm"]
+    subgraph M3["<b>aio-rfcomm</b> (today)"]
         direction TB
-        c1["lg-soundbar-bluetooth"] --> c2["serialx rfcomm:// handler"] --> c3["aio-rfcomm on an owner thread"] --> c4["BlueZ"]
+        m3a["aio-rfcomm on an owner thread"] --> m3b["BlueZ connects by service"]
     end
-    subgraph S4["4. Today"]
-        direction TB
-        d1["lg-soundbar-bluetooth"] --> d2["RfcommConnection"] --> d3["aio-rfcomm on an owner thread"] --> d4["BlueZ"]
-    end
-    S1 ~~~ S2 ~~~ S3 ~~~ S4
+    L -.-> M1
+    L -.-> M2
+    L --> M3
+    classDef old fill:#88888814,stroke:#888,stroke-dasharray: 5 4
+    classDef now fill:#2a9d4b1f,stroke:#2a9d4b
+    classDef box fill:#ffffff,stroke:#999,color:#222
+    class L,m1a,m1b,m2a,m2b,m3a,m3b box
+    class M1,M2 old
+    class M3 now
 ```
 
-| Route | Integration versions | What happened, and why it was replaced |
-|---|---|---|
-| 1. Own RFCOMM socket | Up to 0.4.24 | A worker thread wrote the first request the moment the socket opened, in time. Replaced so that BlueZ connects by service, as it does for other profiles: no channel lookup of our own (first `sdptool`, then our own SDP client) and no stored channel |
-| 2. Own BlueZ profile code | 0.4.25 to 0.4.27 | BlueZ found the channel. Writing the first request in BlueZ's handover on Home Assistant's event loop was too late at a busy start-up, so from 0.4.26 the handover ran on a thread of its own; even so, one busy start-up in three was late. It was also our own D-Bus code, and BlueZ kept its own reference to each connection, which had to be dropped explicitly. Replaced by aio-rfcomm, a maintained library taking the same route |
-| 3. aio-rfcomm through serialx | 0.4.28 betas | In time at four start-ups of four. Replaced to follow the Bluetooth pattern (below); serialx only passed bytes, its serial settings (baud rate, flow control) going unused and the first request being an option of the handler's own |
-| 4. `RfcommConnection` on aio-rfcomm | 0.4.28 on (as a client shaped like bleak's), reshaped for 1.0 | Today's design: a byte stream, with the first request sent as the link opens, from the owner's thread |
+Three mechanisms made the RFCOMM connection in turn, each handing more of
+the work to BlueZ or to a maintained library.
 
-**Why route 4 leaves serialx.** It is a choice, not a limitation:
+- The raw RFCOMM socket sent the first request from a worker thread as the
+  socket opened, in time. It was replaced so BlueZ connects by service,
+  with no channel lookup in the library (first `sdptool`, then a custom SDP
+  client) and no stored channel.
+- The custom BlueZ profile code let BlueZ find the channel. Writing the
+  first request in BlueZ's handover on Home Assistant's event loop was late
+  at busy start-ups, until the handover moved to a thread of its own, the
+  same mechanism every route since has used.
+- `aio-rfcomm` replaced the custom profile code, taking the same route
+  through BlueZ. It removes custom D-Bus profile code to maintain (such as
+  dropping BlueZ's reference to each connection), and it is a maintained,
+  cross-platform library from `bleak`'s maintainer.
 
+### How the soundbar library reaches it
+
+```mermaid
+flowchart TB
+    t1["<b>Through serialx</b><br/>(prototyped)"]
+    t2["<b>Through bluetooth-classic</b><br/>(today)"]
+    t3["<b>Through bleak</b><br/>(Low Energy)"]
+    d1["device library"]
+    d2["device library"]
+    d3["device library"]
+    t1 ~~~ d1
+    t2 ~~~ d2
+    t3 ~~~ d3
+
+    subgraph SX1["serialx"]
+        sx["URL handler lookup"]
+    end
+    d1 -->|"opens an rfcomm:// URL"| sx
+    subgraph BC1["bluetooth-classic"]
+        direction TB
+        h1["rfcomm:// handler"]
+        subgraph O1["owner thread"]
+            a1["aio-rfcomm"]
+        end
+        h1 --> a1
+    end
+    sx --> h1
+    a1 --> z1["BlueZ"]
+
+    subgraph BC2["bluetooth-classic"]
+        direction TB
+        c2["RfcommConnection"]
+        subgraph O2["owner thread"]
+            a2["aio-rfcomm"]
+        end
+        c2 --> a2
+    end
+    d2 -->|"establish_rfcomm_connection()"| c2
+    a2 --> z2["BlueZ"]
+
+    subgraph BL3["bleak"]
+        direction TB
+        c3["BleakClient"] --> k3["BlueZ backend"]
+    end
+    d3 -->|"establish_connection()"| c3
+    k3 --> z3["BlueZ"]
+
+    classDef title fill:none,stroke:none
+    classDef old fill:none,stroke:none,color:#888
+    classDef now fill:none,stroke:none,color:#2a9d4b
+    classDef ref fill:none,stroke:none,color:#4a78b0
+    classDef box fill:#ffffff,stroke:#999,color:#222
+    classDef lib fill:#88888812,stroke:#aaa
+    class t1 old
+    class t2 now
+    class t3 ref
+    classDef dep fill:#e0802014,stroke:#e08020,stroke-dasharray: 4 3,color:#222
+    class d1,d2,d3,sx,h1,z1,c2,z2,c3,k3,z3 box
+    class a1,a2 dep
+    classDef part fill:#ffffff,stroke:#999,color:#222
+    class SX1,BC1,BC2,BL3 lib
+    class O1,O2 part
+```
+
+`serialx` has no RFCOMM support of its own. The `rfcomm://` handler was
+written for this project, in `bluetooth-classic`, and registered with
+`serialx` on import. It worked, but only passed bytes through. Its serial
+settings went unused, and the first request was an option of the handler's
+own. `bluetooth-classic`'s `RfcommConnection` replaced it by choice:
+
+- `bluetooth-classic` wraps `aio-rfcomm` in `RfcommConnection`, opened with
+  `establish_rfcomm_connection()`, following the pattern existing Low
+  Energy integrations use with `BleakClient` and `establish_connection()`.
+  The soundbar library's link factory makes the `RfcommConnection`.
 - The soundbar is treated as a Bluetooth device, as Home Assistant treats
-  Low Energy devices: scanned, paired, and handed a connection by the
-  Bluetooth integration.
-- That fits this device: its protocol only exists over Bluetooth, and so
-  does its whole lifecycle.
-- serialx worked, and could gain a first write on open.
-- serialx stays the better fit for devices whose protocol also runs over
-  wired serial (Bluetooth-to-serial modules, OBD-II adapters, GPS
-  receivers), where the user picks a port. Both can coexist.
+  Low Energy devices, scanned, paired and handed a connection by the
+  `bluetooth` integration.
+- Its protocol and whole lifecycle are Bluetooth.
+- An `rfcomm://` handler in `serialx` would still be the better fit for
+  devices whose protocol also runs over wired serial, such as
+  Bluetooth-to-serial modules, OBD-II adapters and GPS receivers. The one
+  written here could be the starting point.
 
-bleak was not an option: it is Low Energy only by design.
+`bleak` was never an option, as it supports Low Energy only.
 
 ## Today and the proposed target
 
 | Stage | Soundbar library | bluetooth-classic | Home Assistant |
 |---|---|---|---|
-| Today | Connects with `RfcommConnection` | Scans, pairing, the aio-rfcomm owner, `RfcommConnection` | Nothing for Classic |
-| aio-rfcomm gains an adapter choice | Unchanged | Lets a machine with several adapters choose one | Nothing for Classic |
-| The `bluetooth` integration takes Classic | Gets its connection from Home Assistant | Archived | Owns Classic adapters, scans, pairing and the aio-rfcomm owner, off its main event loop; shows Classic devices and links |
+| Today | Connects with `RfcommConnection` | Scans, pairing, the `aio-rfcomm` owner, `RfcommConnection` | Nothing for Classic |
+| `aio-rfcomm` gains an adapter choice | Unchanged | Lets a machine with several adapters choose one | Nothing for Classic |
+| The `bluetooth` integration takes Classic | Gets its connection from Home Assistant | Archived | Owns Classic adapters, scans, pairing and the `aio-rfcomm` owner, off its main event loop, and shows Classic devices and links |
 
 ## Proposals
 
-Each can be accepted or declined on its own.
+These are independent, and each could be taken up or declined separately.
 
-1. **Connection slots, in bleak-retry-connector.**
-   - Home Assistant's connection monitor already shows the soundbar's
-     Classic link, through BlueZ, but only if the link was up when the
-     adapter was registered (`BleakSlotManager.register_adapter()`).
-   - A link made later is never noticed, so whether it counts against the
-     adapter's slots depends on timing.
-   - Proposed: `BleakSlotManager` allocates a slot whenever any device on a
-     registered adapter becomes connected. That also counts other
-     programs' links, such as Bluetooth audio.
-2. **aio-rfcomm: an adapter choice.** It uses BlueZ's first adapter today;
-   a machine with several should be able to choose (aio-rfcomm's own code
-   marks this to revisit).
-   - A first write inside aio-rfcomm, in the same step as the handover, is
-     not proposed: on the owner's idle loop the request already goes out
-     about 0.1 ms after the link opens, so it would gain little. What
-     matters is a loop that is not busy (below).
-3. **One scanner per adapter in habluetooth, for both kinds of scanning.**
-   - Today the two are separate only because each library asks BlueZ for
-     its own kind: Home Assistant for Low Energy, `bluetooth-classic` for
-     Classic. BlueZ can already alternate both in one discovery.
-   - The radio still treats them differently: Low Energy scanning listens
-     for advertisements, and can run passively all the time; a Classic
-     inquiry transmits and waits for discoverable devices to answer, taking
-     radio time from that listening.
-   - Proposed: habluetooth keeps passive Low Energy scanning running and
-     schedules short Classic inquiries into it (targeted checks such as the
-     soundbar's on/off scan, and general scans when a device is added), so
-     the radio budget is decided in one place. Classic devices then appear
-     in Home Assistant's Bluetooth pages, and integrations stop scanning for
-     themselves.
-   - Devices with both radios would be merged, as they can be found both
-     ways, sometimes under different addresses. `bluetooth-classic`'s
-     discovery is the prototype for the Classic side.
-4. **Pairing and trust in Home Assistant's Bluetooth libraries.** bleak's
-   BlueZ backend has `pair()` for Low Energy devices, and BlueZ pairs both
-   kinds the same way; but bleak is Low Energy only by policy, so Classic
-   pairing and trust may belong in habluetooth or bluetooth-adapters
-   instead.
-5. **The `bluetooth` integration as the aio-rfcomm owner,** handing out
-   connections shaped like `RfcommConnection`, as it hands out bleak
-   clients. It would run aio-rfcomm off Home Assistant's main event loop,
-   on a thread of its own, so the first request is not held up by a busy
-   start-up.
+### 1. Connection slots in `bleak-retry-connector`
+
+Home Assistant's connection monitor shows the soundbar's Classic link, but
+only if it was up when the adapter was registered
+(`BleakSlotManager.register_adapter()`). A link made later is never
+counted, so the slot count depends on timing.
+
+`BleakSlotManager` could allocate a slot whenever any device on a
+registered adapter connects, which would also count other programs' links.
+
+### 2. An adapter choice in `aio-rfcomm`
+
+`bleak` takes an adapter, which Home Assistant uses to connect each device
+through the best one. Classic devices are usually paired, and a pairing's
+key is tied to the adapter that made it, so a Classic connection has to go
+through the adapter the device was paired on. `aio-rfcomm` always uses
+BlueZ's first adapter (its own code marks choosing one as something to
+revisit), so it can do neither. `bluetooth-classic` pairs on the first
+adapter for now, so pairing and connecting agree.
+
+A first write inside `aio-rfcomm` is not proposed. On the owner's idle loop
+the request already goes out about 0.1 ms after the link opens, so it would
+gain little.
+
+### 3. One scanner per adapter in `habluetooth`
+
+- The two kinds of scanning are separate today only because each library
+  asks BlueZ for its own kind. BlueZ can already alternate both.
+- Low Energy scanning listens passively all the time. A Classic inquiry
+  transmits and waits for answers, taking radio time from that listening.
+- [`habluetooth`](https://github.com/Bluetooth-Devices/habluetooth) could keep passive Low Energy scanning running and schedule
+  short Classic inquiries into it, so the radio budget is decided in one
+  place.
+- Classic devices would then appear in Home Assistant's Bluetooth pages,
+  and integrations would stop scanning for themselves.
+- Devices with both radios would need merging, as they can be found both
+  ways.
+
+`bluetooth-classic`'s discovery is a prototype for the Classic side.
+
+### 4. Pairing and trust in Home Assistant's Bluetooth libraries
+
+`bleak`'s BlueZ backend has `pair()` for Low Energy devices, and BlueZ pairs
+both kinds the same way. `bleak` is Low Energy only by policy, though, so
+Classic pairing and trust may belong in `habluetooth` or [`bluetooth-adapters`](https://github.com/Bluetooth-Devices/bluetooth-adapters)
+instead.
+
+### 5. The `bluetooth` integration as the `aio-rfcomm` owner
+
+The `bluetooth` integration would hand out connections with
+`RfcommConnection`'s methods, as it hands out `bleak` clients. It would run `aio-rfcomm`
+on a thread of its own, off Home Assistant's main event loop, so the first
+request is not held up by a busy start-up.
 
 ## Limits and open questions
 
-- **No ESPHome proxies.** Bluetooth proxies carry Low Energy only. Of the
-  ESP32 family only the original ESP32 has a Classic radio; a Classic proxy
-  would also have to send the opening request itself.
-- **Discovery.** Classic devices answer inquiries rather than advertise.
-  - The integration already runs a short, targeted inquiry for its own
-    soundbar every minute. It stops as soon as the soundbar answers (0.2 to
-    3.6 seconds on a G1, at most 5 when it is off). While it runs, the
-    controller shares its radio time with Low Energy scanning.
-  - Discovering soundbars that are not set up would need general inquiries
-    on a schedule, as long as the 12-second scan setup runs: a much larger
-    share, for one setup step. So discovery runs when the integration is
-    added.
-  - Unconfirmed: how much a short inquiry costs Low Energy scanning on a
-    given controller, and whether these soundbars also send Low Energy
-    advertisements a matcher could use.
-- **Off the main event loop.** Bluetooth Low Energy in Home Assistant runs
-  on its main event loop. A device that must be asked something the moment
-  a connection opens needs the owner on a loop of its own:
-  - On the owner's own idle loop, the request goes out about 0.1 ms after
-    the link opens.
-  - On Home Assistant's loop at a busy start-up, it was late (route 2
-    above).
-  - Whether core accepts a Bluetooth thread of its own is the main open
-    question for Classic support.
-- **The cost of a Classic link.** The controller shares its radio,
-  scheduling and connection handles between Classic and Low Energy, so
-  counting a Classic link as one slot is a cautious estimate; the exact cost
-  per controller is unconfirmed.
-- **The name.** `bluetooth-classic` is a generic name for a stand-in; it can
+Threading is the biggest open question. Bluetooth Low Energy in Home
+Assistant runs on its main event loop, but a device that must be asked
+something as soon as a connection opens needs the owner on a loop of its
+own.
+
+- On the owner's idle loop the request is in time; on Home Assistant's
+  loop it was late at busy start-ups (see the diagram above, and what was
+  prototyped).
+- Whether core would accept a Bluetooth thread of its own is undecided.
+
+Other limits:
+
+- ESPHome Bluetooth proxies carry Low Energy only. Of the ESP32 family,
+  only the original ESP32 has a Classic radio.
+- Classic devices answer inquiries rather than advertise. The integration's
+  own inquiry is short (0.2 to 3.6 seconds on a G1, at most 5 when off),
+  but discovering devices not yet set up would need regular 12-second
+  scans. So discovery happens when the integration is added.
+- How much an inquiry costs Low Energy scanning on a given controller is
+  unconfirmed, as is whether these soundbars send Low Energy advertisements
+  a matcher could use.
+- Classic and Low Energy share the controller's radio and connection
+  handles, so counting a Classic link as one slot is a cautious estimate.
+- `bluetooth-classic` is a generic name for a temporary library. It could
   be offered to the Bluetooth-Devices organisation, or archived once its
   pieces have moved.
 

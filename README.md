@@ -41,8 +41,8 @@ Home Assistant, are in [docs/architecture.md](docs/architecture.md).
   reports.
 - Its **speaker connections** and the **audio format** it is playing, where
   it reports them.
-- A **Connected** switch to connect, or to let go of the soundbar (handing
-  it back to LG's app) without switching it off.
+- A **Connected** switch to connect, or to let go of the soundbar without
+  switching it off.
 - The soundbar's **model and firmware versions** on its device page.
 - While the soundbar plays Dolby Atmos or DTS:X, the sound mode shows that
   format and cannot be changed, as on the soundbar itself. Settings the
@@ -56,7 +56,7 @@ LG's app does. The last column shows what an LG G1 has.
 | Entity | Type | Category | Created when | Notes | G1 |
 |---|---|---|---|---|---|
 | *(the soundbar's name)* | Media player | | Always | Turning off where the soundbar offers it, as LG's app shows its power button | ✓ |
-| Connected | Switch | | Always | On while Home Assistant is connected. Turning it on connects (and turns on a soundbar that is off); turning it off hands the soundbar back to LG's app | ✓ |
+| Connected | Switch | | Always | On while Home Assistant is connected. Turning it on connects (and turns on a soundbar that is off); turning it off lets go of the soundbar | ✓ |
 | Night time | Switch | | The soundbar has night mode | | ✓ |
 | Dynamic range control | Switch | Configuration | The soundbar offers it | | ✓ |
 | Auto volume | Switch | Configuration | The soundbar offers it | | ✓ |
@@ -86,8 +86,8 @@ their values are only known then.
 ## How it connects
 
 Connecting has side effects: it wakes the soundbar if it is off, moves it to
-Bluetooth for a moment if it is on, and takes it from LG's app. So Home
-Assistant connects as little as it can:
+Bluetooth for a moment if it is on, and disconnects other connected
+devices. So Home Assistant connects as little as it can:
 
 - **While not connected**, a short Bluetooth scan every minute shows whether
   the soundbar is on, without waking it. The volume, input and sound mode
@@ -96,7 +96,8 @@ Assistant connects as little as it can:
   Assistant puts the soundbar straight back on the input it was on, or
   wakes it if it was off.
 - **Once connected**, everything updates live until the connection drops
-  (the soundbar switches off, LG's app takes it, or you turn Connected off).
+  (the soundbar switches off, another device takes it, or you turn Connected
+  off).
   Home Assistant then goes back to scanning and does not reconnect by
   itself.
 
@@ -109,7 +110,7 @@ Options, under **Configure**:
 - **Auto-connect** (off by default): connect when the soundbar comes on, and
   at start-up if it is on, for live updates without using the media player
   first. It never reconnects after a drop while the soundbar stays on, so it
-  does not fight LG's app.
+  does not fight other devices.
 - **Scan interval** (60 seconds): how often to check whether the soundbar is
   on while not connected.
 
@@ -123,8 +124,8 @@ Options, under **Configure**:
   playing, as it moves to Bluetooth and back. LG's app causes the same.
 - **No live updates while not connected.** Changes made with the remote, the
   TV or LG's app show up once Home Assistant next connects.
-- **One controller at a time.** Opening LG's app takes the soundbar from
-  Home Assistant, and the other way round.
+- **One connection at a time.** Connecting disconnects other devices from
+  the soundbar, and the other way round.
 - **Scanning shares the Bluetooth adapter** with Home Assistant's other
   Bluetooth use; a shorter scan interval takes more of it.
 
@@ -237,7 +238,7 @@ The soundbar's protocol is in the
 pairing and the serial link come from
 [bluetooth-classic](https://github.com/jeverley/bluetooth-classic).
 
-How the pieces fit together, the routes prototyped, and proposals for
+How the pieces fit together, what was prototyped, and proposals for
 Bluetooth Classic support in Home Assistant are in
 [docs/architecture.md](docs/architecture.md).
 

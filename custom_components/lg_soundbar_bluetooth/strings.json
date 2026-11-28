@@ -46,7 +46,7 @@
         },
         "data_description": {
           "turn_on_input": "The input to switch to after Home Assistant turns the soundbar on, which wakes it on Bluetooth. Last input returns it to the input it was last seen on; Default leaves it on Bluetooth.",
-          "auto_connect": "Connect when the soundbar comes on, and at startup if it is on. Connecting briefly switches the soundbar to Bluetooth and disconnects LG's app.",
+          "auto_connect": "Connect when the soundbar comes on, and at startup if it is on. Connecting briefly switches the soundbar to Bluetooth and disconnects other connected devices.",
           "scan_interval": "How often to check whether the soundbar is on while Home Assistant is not connected to it. Checking does not wake the soundbar."
         }
       }
@@ -63,7 +63,7 @@
         },
         "data_description": {
           "turn_on_input": "The input to switch to after Home Assistant turns the soundbar on, which wakes it on Bluetooth. Last input returns it to the input it was last seen on; Default leaves it on Bluetooth.",
-          "auto_connect": "Connect when the soundbar comes on, and at startup if it is on. Connecting briefly switches the soundbar to Bluetooth and disconnects LG's app.",
+          "auto_connect": "Connect when the soundbar comes on, and at startup if it is on. Connecting briefly switches the soundbar to Bluetooth and disconnects other connected devices.",
           "scan_interval": "How often to check whether the soundbar is on while Home Assistant is not connected to it. Checking does not wake the soundbar."
         }
       }
